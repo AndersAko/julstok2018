@@ -1,0 +1,17 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Advent2018_common", "Advent2018_common\Advent2018_common.csproj", "{244C057A-AF22-4ABE-A04E-6133FDE96BAF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{244C057A-AF22-4ABE-A04E-6133FDE96BAF}.Debug|x86.ActiveCfg = Debug|x86
+		{244C057A-AF22-4ABE-A04E-6133FDE96BAF}.Debug|x86.Build.0 = Debug|x86
+		{244C057A-AF22-4ABE-A04E-6133FDE96BAF}.Release|x86.ActiveCfg = Release|x86
+		{244C057A-AF22-4ABE-A04E-6133FDE96BAF}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+EndGlobal
