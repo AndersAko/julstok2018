@@ -4,50 +4,6 @@ using System.Linq;
 
 namespace Advent2018_common
 {
-    class Claim
-    {
-        public int id;
-        public int startx;
-        public int starty;
-        public int widthx;
-        public int heighty;
-
-        // Construct from string like: "#9 @ 593,72: 14x22"
-        public Claim(string input)
-        {
-            var coords_str = input.Split(new char[] { '#', ' ', '@', ':', 'x', ',' }, StringSplitOptions.RemoveEmptyEntries);
-            var coords = coords_str.Select(x => { int result;  var success = Int32.TryParse(x, out result); return success ? result : 0; }).ToArray();
-            id = coords[0];
-            startx = coords[1];
-            starty = coords[2];
-            widthx = coords[3];
-            heighty = coords[4];
-        }
-        public override string ToString()
-        {
-            return $"{id}: {startx},{starty}:{widthx}x{heighty}";
-        }
-        public Tuple<int, int>[] Overlaps(Claim two)
-        {
-            if (this.startx>= two.startx+two.widthx || this.starty >= two.starty+two.heighty ||
-                two.startx >= this.startx + this.widthx || two.starty >= this.starty + this.heighty)
-            {
-                return new Tuple<int, int>[0];
-            }
-            var result = new List<Tuple<int, int>>();
-            for (int x = this.startx; x<this.startx+this.widthx; x++)
-            {
-                for (int y=this.starty; y<this.starty+this.heighty; y++)
-                {
-                    if (x>=two.startx && x < two.startx + two.widthx && y>=two.starty & y<two.starty+two.heighty)
-                    {
-                        result.Add(new Tuple<int, int>(x, y));
-                    }
-                }
-            }
-            return result.ToArray();
-        }
-    }
 
     class MainClass
     {
@@ -55,37 +11,62 @@ namespace Advent2018_common
         public static void Main(string[] args)
         {
             string[] input = System.IO.File.ReadAllLines("../../input.txt");
-            var claims = new List<Claim>();
-            foreach (var line in input)
-            {
-                var c = new Claim(line);
-                claims.Add(c);
-            }
+            var sorted = (from line in input orderby line select line).ToArray();
 
-            var overlaps = new HashSet<Tuple<int, int>>();
-            foreach (var claim in claims)
+            // Array of 60 ints for each guard, one slot per minute. Number indicates number of occurances asleep
+            var guards = new Dictionary<int, int[]>();
+            int activeGuard = 0;
+            int asleepAtMinute = 0;
+            
+            for (int i=0; i<sorted.Count(); i++)
             {
-                bool doesOverlap = false;
-                foreach (var claimTwo in claims)
+                // Parse 
+                //      [1518-02-08 23:57] Guard #1439 begins shift
+                //      [1518-02-09 00:16] falls asleep
+                //      [1518-02-09 00:53] wakes up
+                //      [1518-02-09 00:56] falls asleep
+                //      [1518-02-09 00:57] wakes up
+                var splitLine = sorted[i].Split(" :][#".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+                if (splitLine[3] == "Guard")
                 {
-                    if (claim != claimTwo)
+                    activeGuard = Convert.ToInt32(splitLine[4]);
+                    if (!guards.ContainsKey(activeGuard))
                     {
-                        //Console.Write($"{claim} and {claimTwo} overlaps at:");
-                        foreach (var overlap in claim.Overlaps(claimTwo))
-                        {
-                            //Console.Write($"{overlap}");
-                            overlaps.Add(overlap);
-                            doesOverlap = true;
-                        }
-                        //Console.WriteLine();
+                        guards[activeGuard] = new int[60];
                     }
                 }
-                if (!doesOverlap)
+                else if (splitLine[3] == "falls")
                 {
-                    Console.WriteLine($"Claim: {claim} has no overlap with any other.");
+                    asleepAtMinute = Convert.ToInt32(splitLine[2]);
+                } else if (splitLine[3] == "wakes")
+                {
+                    var toMinute = Convert.ToInt32(splitLine[2]);
+
+                    for (int j = asleepAtMinute; j < toMinute; j++)
+                    {
+                        guards[activeGuard][j]++;
+                    }
                 }
+                string text = String.Join("", guards[activeGuard] );
+                Console.WriteLine($"{activeGuard}: {sorted[i]}: {text}");
             }
-            Console.WriteLine($"Overlaps: {overlaps.Count()}");
+            foreach (var guard in guards)
+            {
+                string text = String.Join("", guard.Value);
+                Console.WriteLine($"{guard.Key}: {text}");
+            }
+            var asleepMinutes = (from guard in guards select (guard.Key, guard.Value.Sum())); 
+            var maxAsleepGuard = (from guard in asleepMinutes where guard.Item2 == asleepMinutes.Max(x => x.Item2) select guard).First();
+            Console.WriteLine($"Most asleep guard: { maxAsleepGuard.Item1}, sleeping { maxAsleepGuard.Item2} ");
+            Console.WriteLine($"Most asleep minute: {Array.IndexOf(guards[maxAsleepGuard.Item1], guards[maxAsleepGuard.Item1].Max())}");
+            Console.WriteLine($"Result: {maxAsleepGuard.Item1 * Array.IndexOf(guards[maxAsleepGuard.Item1], guards[maxAsleepGuard.Item1].Max())}");
+
+            var mostFrequentAsleep = (from guard in guards select (guard.Key, guard.Value.Max()));
+            var mostFrequentAsleepGuard = (from guard in mostFrequentAsleep where guard.Item2 == mostFrequentAsleep.Max(x => x.Item2) select guard).First();
+            Console.WriteLine($"Most frequently asleep guard: { mostFrequentAsleepGuard.Item1}, sleeping { mostFrequentAsleepGuard.Item2} times");
+            Console.WriteLine($"Most asleep minute: {Array.IndexOf(guards[mostFrequentAsleepGuard.Item1], guards[mostFrequentAsleepGuard.Item1].Max())}");
+            Console.WriteLine($"Result: {mostFrequentAsleepGuard.Item1 * Array.IndexOf(guards[mostFrequentAsleepGuard.Item1], guards[mostFrequentAsleepGuard.Item1].Max())}");
+
         }
     }
 }
