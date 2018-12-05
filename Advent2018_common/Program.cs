@@ -6,24 +6,7 @@ namespace Advent2018_common
 {
     class MainClass
     {
-        // HashSet
-        private static Dictionary<char, int> letterCount(string input)
-        {
-            var result = new Dictionary<char, int>();
-            for (int i=0; i< input.Length; i++)
-            {
-                if (result.ContainsKey(input[i])) {
-                    result[input[i]] += 1;
-                }
-                else
-                {
-                    result[input[i]] = 1;
-                }
-            }
-            return result;
-        }
-
-        private static string diffMedEtt(string a, string[] lines)
+        private static string DiffMedEtt(string a, string[] lines)
         {
             // Jämför med alla andra rader, tecken för tecken
             foreach (var b in lines)
@@ -61,24 +44,10 @@ namespace Advent2018_common
 
             foreach (var line in input)
             {
-                var bokstäver = letterCount(line);
-                bool settTvå = false;
-                bool settTre = false;
-                foreach (var b in bokstäver)
-                {
-                    if (b.Value == 2 && !settTvå)
-                    {
-                        tvåor++;
-                        settTvå = true;
-                    }
-                    if (b.Value == 3 && !settTre)
-                    {
-                        treor++;
-                        settTre = true;
-                    }
+                var letterCount = (line.OrderBy(c => c).GroupBy(c => c)).Select(c => c.Count());
+                if (letterCount.Contains(2)) tvåor++;
+                if (letterCount.Contains(3)) treor++;
 
-
-                }
                 Console.WriteLine($"Counts: {line}: {tvåor}, {treor}");
             }
 
@@ -86,10 +55,10 @@ namespace Advent2018_common
 
             foreach (var line in input)
             {
-                var commonString = diffMedEtt(line, input);
+                var commonString = DiffMedEtt(line, input);
                 if (commonString != "") Console.WriteLine(commonString);
             }
-
+            Console.ReadKey();
         }
     }
 }
