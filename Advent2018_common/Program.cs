@@ -9,30 +9,47 @@ namespace Advent2018_common
 
     class MainClass
     {
-        private static StringBuilder reducePolymer (StringBuilder input)
+        private static StringBuilder reducePolymer(StringBuilder input)
         {
             StringBuilder result = input;
-            for (int i=0; i< result.Length-1; i++)
+            var unitPairs = getUnitPairs();
+            for (int i=0; i<result.Length-1; i++)
             {
-                if (Char.IsLower(result[i]) && Char.IsUpper(result[i+1]) &&
-                 result[i] == char.ToLower(result[i+1]) ){
-                    result = result.Remove(i, 2);
-                    continue;
-                }
-                if (Char.IsUpper(result[i]) && Char.IsLower(result[i+1]) &&
-                                 result[i] == char.ToUpper(result[i + 1]) ) {
-                    result = result.Remove(i, 2);
+                if (unitPairs.Contains(result.ToString(i,2)) )
+                {
+                    result.Remove(i, 2);
                 }
             }
             return result;
         }
-
+        private static HashSet<string> unitPairs = null;
+        // Return a list of pairs such as "Aa", "aA", "Bb", "bB", ...
+        private static HashSet<string> getUnitPairs()
+        {
+            if (unitPairs == null)
+            {
+                // Generate list of unitPairs
+                var list = Enumerable.Range('A', 'Z' - 'A' + 1)
+                        .Select(c => ((char)c).ToString() + Char.ToLower((char) c).ToString())
+                    .Concat(Enumerable.Range('A', 'Z' - 'A' + 1)
+                        .Select(c => (char.ToLower((char)c).ToString() + (char)c).ToString()));
+                unitPairs = new HashSet<string>(list);
+            }
+            return unitPairs;
+        }
+        
         public static void Main(string[] args)
         {
             string[] input = System.IO.File.ReadAllLines("../../input.txt");
             var polymer = new StringBuilder( input[0] );
 
             int minimumPolymerLength = Int32.MaxValue;
+            Console.WriteLine($"Our pairs are:");
+            foreach (var x in getUnitPairs())
+            {
+                Console.Write($"{x} ");
+            }
+            Console.WriteLine();
 
             string units = "abcdefghijklmnopqrstuvwxyz";
             foreach (var unit in units.ToCharArray())
