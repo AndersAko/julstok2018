@@ -12,65 +12,54 @@ namespace Advent2018_common
         private static StringBuilder reducePolymer(StringBuilder input)
         {
             StringBuilder result = input;
-            var unitPairs = getUnitPairs();
-            for (int i=0; i<result.Length-1; i++)
+            var original = input.Length;
+
+            for (int i = 0; i < result.Length - 1; i++)
             {
-                if (unitPairs.Contains(result.ToString(i,2)) )
+                if ((result[i] ^ result[i + 1]) == 32)
                 {
                     result.Remove(i, 2);
+                    // Backup so the "new" next character is not skipped
+                    i--;
+                    // If not the begining of string, backup one addtional character to detect if a new match is found
+                    if (i >= 0) i--;
                 }
             }
+            //Console.Write($"( reduced {original}-> {result.Length} ) ");
             return result;
         }
-        private static HashSet<string> unitPairs = null;
-        // Return a list of pairs such as "Aa", "aA", "Bb", "bB", ...
-        private static HashSet<string> getUnitPairs()
-        {
-            if (unitPairs == null)
-            {
-                // Generate list of unitPairs
-                var list = Enumerable.Range('A', 'Z' - 'A' + 1)
-                        .Select(c => ((char)c).ToString() + Char.ToLower((char) c).ToString())
-                    .Concat(Enumerable.Range('A', 'Z' - 'A' + 1)
-                        .Select(c => (char.ToLower((char)c).ToString() + (char)c).ToString()));
-                unitPairs = new HashSet<string>(list);
-            }
-            return unitPairs;
-        }
-        
+
         public static void Main(string[] args)
         {
             string[] input = System.IO.File.ReadAllLines("../../input.txt");
-            var polymer = new StringBuilder( input[0] );
+
+            var polymer = new StringBuilder(input[0]);
+            polymer = reducePolymer(polymer);
+            Console.WriteLine($"Reduced length {polymer.Length}");
+
+            //  Generate "abcdefghijklmnopqrstuvwxyz" to avoid typos
+            string units = new string(Enumerable.Range('a', 'z' - 'a' + 1).Select(c => (char)c).ToArray());
 
             int minimumPolymerLength = Int32.MaxValue;
-            Console.WriteLine($"Our pairs are:");
-            foreach (var x in getUnitPairs())
-            {
-                Console.Write($"{x} ");
-            }
-            Console.WriteLine();
 
-            string units = "abcdefghijklmnopqrstuvwxyz";
             foreach (var unit in units.ToCharArray())
             {
-                polymer = new StringBuilder(input[0]);
-                polymer = polymer.Replace(Char.ToLower(unit).ToString() , "");
-                polymer = polymer.Replace(Char.ToUpper(unit).ToString(), "");
+                var cleanedUpPolymer = new StringBuilder(polymer.ToString());
+                cleanedUpPolymer = cleanedUpPolymer.Replace(Char.ToLower(unit).ToString(), "");
+                cleanedUpPolymer = cleanedUpPolymer.Replace(Char.ToUpper(unit).ToString(), "");
 
-                var length = polymer.Length;
-                while (true)
+                cleanedUpPolymer = reducePolymer(cleanedUpPolymer);
+
+                Console.WriteLine($"{unit} => {cleanedUpPolymer.Length}");
+                if (cleanedUpPolymer.Length < minimumPolymerLength)
                 {
-                    var reduced = reducePolymer(polymer);
-                    if (reduced.Length == length) break;
-                    polymer = reduced;
-                    length = polymer.Length;
+                    minimumPolymerLength = cleanedUpPolymer.Length;
+                    Console.WriteLine($"{cleanedUpPolymer.Length}: {cleanedUpPolymer}");
                 }
-                if (polymer.Length < minimumPolymerLength) minimumPolymerLength = length;
-                Console.WriteLine($"{polymer.Length}: {polymer}");
 
             }
             Console.WriteLine($"{minimumPolymerLength}");
+            Console.ReadKey();
         }
     }
 }
