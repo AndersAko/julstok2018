@@ -1,50 +1,101 @@
-81, 157
-209, 355
-111, 78
-179, 211
-224, 268
-93, 268
-237, 120
-345, 203
-72, 189
-298, 265
-190, 67
-319, 233
-328, 40
-323, 292
-125, 187
-343, 186
-46, 331
-106, 350
-247, 332
-349, 145
-217, 329
-48, 177
-105, 170
-257, 166
-225, 113
-44, 98
-358, 92
-251, 209
-206, 215
-115, 283
-206, 195
-144, 157
-246, 302
-306, 157
-185, 353
-117, 344
-251, 155
-160, 48
-119, 131
-343, 349
-223, 291
-256, 89
-133, 96
-240, 271
-322, 73
-324, 56
-149, 272
-161, 107
-172, 171
-301, 291
+Step G must be finished before step M can begin.
+Step T must be finished before step E can begin.
+Step P must be finished before step M can begin.
+Step V must be finished before step L can begin.
+Step Y must be finished before step B can begin.
+Step K must be finished before step Z can begin.
+Step H must be finished before step I can begin.
+Step D must be finished before step U can begin.
+Step C must be finished before step L can begin.
+Step R must be finished before step Z can begin.
+Step U must be finished before step B can begin.
+Step J must be finished before step M can begin.
+Step M must be finished before step E can begin.
+Step I must be finished before step X can begin.
+Step N must be finished before step O can begin.
+Step S must be finished before step F can begin.
+Step X must be finished before step A can begin.
+Step F must be finished before step Q can begin.
+Step B must be finished before step Z can begin.
+Step Q must be finished before step W can begin.
+Step L must be finished before step W can begin.
+Step O must be finished before step Z can begin.
+Step A must be finished before step Z can begin.
+Step E must be finished before step W can begin.
+Step W must be finished before step Z can begin.
+Step G must be finished before step R can begin.
+Step H must be finished before step A can begin.
+Step A must be finished before step W can begin.
+Step Y must be finished before step D can begin.
+Step O must be finished before step A can begin.
+Step V must be finished before step U can begin.
+Step H must be finished before step W can begin.
+Step K must be finished before step F can begin.
+Step J must be finished before step X can begin.
+Step V must be finished before step R can begin.
+Step Q must be finished before step A can begin.
+Step F must be finished before step B can begin.
+Step G must be finished before step P can begin.
+Step L must be finished before step A can begin.
+Step B must be finished before step Q can begin.
+Step H must be finished before step J can begin.
+Step J must be finished before step L can begin.
+Step F must be finished before step E can begin.
+Step U must be finished before step A can begin.
+Step G must be finished before step Q can begin.
+Step G must be finished before step S can begin.
+Step K must be finished before step J can begin.
+Step N must be finished before step B can begin.
+Step F must be finished before step O can begin.
+Step C must be finished before step Z can begin.
+Step B must be finished before step E can begin.
+Step M must be finished before step S can begin.
+Step A must be finished before step E can begin.
+Step E must be finished before step Z can begin.
+Step K must be finished before step I can begin.
+Step P must be finished before step A can begin.
+Step Y must be finished before step L can begin.
+Step Y must be finished before step J can begin.
+Step G must be finished before step N can begin.
+Step Q must be finished before step L can begin.
+Step D must be finished before step X can begin.
+Step C must be finished before step I can begin.
+Step K must be finished before step B can begin.
+Step N must be finished before step F can begin.
+Step D must be finished before step M can begin.
+Step B must be finished before step A can begin.
+Step U must be finished before step J can begin.
+Step Q must be finished before step Z can begin.
+Step X must be finished before step F can begin.
+Step K must be finished before step X can begin.
+Step U must be finished before step E can begin.
+Step X must be finished before step W can begin.
+Step K must be finished before step Q can begin.
+Step I must be finished before step E can begin.
+Step D must be finished before step J can begin.
+Step P must be finished before step I can begin.
+Step K must be finished before step D can begin.
+Step S must be finished before step X can begin.
+Step C must be finished before step R can begin.
+Step P must be finished before step W can begin.
+Step I must be finished before step O can begin.
+Step S must be finished before step O can begin.
+Step K must be finished before step C can begin.
+Step N must be finished before step Q can begin.
+Step L must be finished before step E can begin.
+Step L must be finished before step Z can begin.
+Step K must be finished before step W can begin.
+Step Y must be finished before step A can begin.
+Step L must be finished before step O can begin.
+Step N must be finished before step W can begin.
+Step R must be finished before step W can begin.
+Step C must be finished before step O can begin.
+Step H must be finished before step X can begin.
+Step V must be finished before step Y can begin.
+Step S must be finished before step W can begin.
+Step V must be finished before step E can begin.
+Step Q must be finished before step E can begin.
+Step P must be finished before step H can begin.
+Step V must be finished before step H can begin.
+Step N must be finished before step Z can begin.
+Step C must be finished before step A can begin.
