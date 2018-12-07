@@ -12,6 +12,7 @@ namespace Advent2018_common
         public List<Instruction> nextSteps;
         public List<Instruction> previousSteps;
         public bool completed = false;
+        public Nullable<int> endAtSecond;
 
         public Instruction(string id)
         {
@@ -80,6 +81,42 @@ namespace Advent2018_common
 
             }
             Console.WriteLine($" Correct sequence: {sequence}");
+
+            // Part 2
+            // Reset complete flag
+            foreach (var i in instructions) i.Value.completed = false;
+            sequence = new StringBuilder("");
+
+            int secondNow = 0;
+            var workInProgress = new List<Instruction>();
+
+            while (true)
+            {
+                available = new List<Instruction>(instructions
+                .Where(s => (s.Value.previousSteps.Count == 0 || s.Value.previousSteps.All(pi => pi.completed)) && !s.Value.endAtSecond.HasValue)
+                .Select(i => i.Value)
+                .OrderBy(i => i.id));
+                if (available.Count == 0 && workInProgress.Count == 0) break;
+
+                // Add more workers if needed
+                if (workInProgress.Count < 6 && available.Count > 0)
+                {
+                    var nextAvailable = available.First();
+                    nextAvailable.endAtSecond = secondNow + 60 + nextAvailable.id.ToCharArray()[0] - 'A' + 1 ;
+                    workInProgress.Add(nextAvailable);
+                    continue;
+                }
+
+                // Complete new completed work...
+                var nextToComplete = workInProgress.OrderBy(i => i.endAtSecond).First();
+                sequence.Append(nextToComplete.id);
+                secondNow = nextToComplete.endAtSecond.Value;
+                nextToComplete.completed = true;
+                workInProgress.Remove(nextToComplete);
+
+                // Console.WriteLine($" {secondNow}: sequence: {sequence} workers: {string.Join(" ", workInProgress.Select(i => $"{i.id} {i.endAtSecond}"))}");
+            }
+            Console.WriteLine($"Work completed in {secondNow} seconds.");
             Console.ReadKey();
         }
     }
