@@ -7,87 +7,62 @@ using System.Text;
 namespace Advent2018_common
 {
 
-    public class Node
-    {
-        public List<Node> childNodes { get; set; } = new List<Node>() ;
-        public List<int> metaData { get; set; } = new List<int>() ;
-        int id;
 
-        static int nextId = 0;
-
-        public Node(IEnumerator<int> inputSequence)
-        {
-            id = nextId++;
-
-            var numChildren = inputSequence.Current;
-            if (!inputSequence.MoveNext()) Console.WriteLine("Failed to parse!");
-
-            var numMetadata = inputSequence.Current;
-            if (!inputSequence.MoveNext()) Console.WriteLine("Failed to parse!!");
-
-            for (int i=0; i<numChildren; i++)
-            {
-                childNodes.Add(new Node(inputSequence));
-            }
-            for (int i = 0; i < numMetadata; i++)
-            {
-                var meta = inputSequence.Current;
-                if (!inputSequence.MoveNext()) Console.WriteLine("Failed to parse metadata");
-
-                metaData.Add(meta);
-            }
-        }
-        public int SumMetadata()
-        {
-            return metaData.Sum() + childNodes.Select(c => c.SumMetadata()).Sum();
-        }
-        public int Value()
-        {
-            if (childNodes.Count() == 0) return metaData.Sum();
-
-            int value = 0; 
-            foreach (var index in metaData)
-            {
-                 value += (childNodes.ElementAtOrDefault(index-1)?.Value() ?? 0);
-            }
-            return value;
-        }
-
-        public override string ToString()
-        {
-            StringBuilder result = new StringBuilder($"{id}: C(");
-            foreach (var c in childNodes)
-            {
-                result.Append($"{c.id} ");
-            }
-            result.Append (") M( ");
-            foreach (var m in metaData)
-            {
-                result.Append($"{m} ");
-            }
-            result.Append(")");
-            return result.ToString();
-        }
-
-    }
     class MainClass
     {
-
         public static void Main(string[] args)
         {
             string[] input = System.IO.File.ReadAllLines("../../input.txt");
 
-            var inputSequence = input[0].Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries).Select(x => Convert.ToInt32(x)).GetEnumerator();
+            foreach (var line in input)
+            {
+                var numPlayers = Convert.ToInt32(line.Split(" :;".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)[0]);
+                var lastMarble = Convert.ToInt32(line.Split(" :;".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)[6]);
 
-            inputSequence.MoveNext();
-            var root = new Node(inputSequence);
+                Int64[] scores = new Int64[numPlayers];
+                var marbleCircle = new LinkedList<int>();
+                marbleCircle.AddFirst(0);
 
-            Console.WriteLine($"Root node: {root}.");
-            foreach (var c in root.childNodes) Console.WriteLine($"Children: {c}.");
+                var currentMarble = marbleCircle.First;
+                var player = 0;
 
-            Console.WriteLine($"Sum of all metadata: {root.SumMetadata()}");
-            Console.WriteLine($"Value of root: {root.Value()}");
+                for (int marbleToPlace = 1; marbleToPlace <= lastMarble *100 ; marbleToPlace++)
+                {
+                    // If mod 23: Score process
+                    if (marbleToPlace % 23 == 0)
+                    {
+                        scores[player] += marbleToPlace;
+                        for (int i = 0; i < 7; i++)
+                        {
+                            currentMarble = currentMarble.Previous ?? marbleCircle.Last;
+                        }
 
+                        scores[player] += currentMarble.Value;
+                        var newCurrent = currentMarble.Previous;
+                        marbleCircle.Remove(currentMarble);
+                        currentMarble = newCurrent.Next ?? marbleCircle.First;
+                    }
+                    else
+                    // Else place marble after 1 marble after current
+                    {
+                        currentMarble = currentMarble.Next ?? marbleCircle.First;
+
+                        var newMarble = new LinkedListNode<int>(marbleToPlace);
+                        marbleCircle.AddAfter(currentMarble, newMarble);
+                        currentMarble = newMarble;
+                    }
+                    //Console.Write($"[{marbleToPlace}, {player}]: ");
+                    //foreach (var marble in marbleCircle)
+                    //{
+                    //    if (marble == currentMarble.Value) Console.Write($"({marble}) ");
+                    //    else Console.Write($" {marble}  ");
+                    //}
+                    //Console.WriteLine($"Highscore: { scores.Max()}");
+
+                    player = (player + 1) % numPlayers;
+                }
+                Console.WriteLine($"{numPlayers} players; last marble is worth {lastMarble} points: high score is {scores.Max()}   ---- {line}");
+            }
             Console.ReadKey();
         }
     }
