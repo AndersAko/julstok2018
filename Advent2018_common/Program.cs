@@ -8,28 +8,29 @@ namespace Advent2018_common
 
     class Point
     {
-        public int x, y;
-        public int velX, velY;
-        public Point(int x, int y, int velX, int velY)
-        {
-            this.x = x;
-            this.y = y;
-            this.velX = velX;
-            this.velY = velY;
-        }
-        public override string ToString()
-        {
-            return $"({x},{y})"; 
-        }
+        public int X { get; set; }
+        public int Y { get; set; }
+
+        private readonly int velX;
+        private readonly int velY;
 
         public  Point (string input)
         {
             var split = input.Split(" <>=,".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)
                 .ToArray();
-            this.x = Convert.ToInt32(split[1]);
-            this.y = Convert.ToInt32(split[2]);
+            this.X = Convert.ToInt32(split[1]);
+            this.Y = Convert.ToInt32(split[2]);
             this.velX = Convert.ToInt32(split[4]);
             this.velY = Convert.ToInt32(split[5]);
+        }
+        public void Move()
+        {
+            X += velX;
+            Y += velY;
+        }
+        public override string ToString()
+        {
+            return $"({X},{Y})";
         }
     }
 
@@ -41,7 +42,7 @@ namespace Advent2018_common
             {
                 for (int x = minX; x<= maxX; x++)
                 {
-                    if (points.Exists(p => p.x == x && p.y == y)) Console.Write("#");
+                    if (points.Exists(p => p.X == x && p.Y == y)) Console.Write("#");
                     else Console.Write(".");
                 }
                 Console.WriteLine();
@@ -49,48 +50,41 @@ namespace Advent2018_common
         }
         public static void Main(string[] args)
         {
-            string[] input = System.IO.File.ReadAllLines("../../test.txt");
+            string[] input = System.IO.File.ReadAllLines("../../input.txt");
 
             var points = new List<Point>();
-            int minX=0, maxX=0, minY=0, maxY = 0;
-
+            
             foreach (var line in input)
             {
                 var point = new Point(line);
-                minX = Math.Min(minX, point.x);
-                maxX = Math.Max(maxX, point.x);
-                minY = Math.Min(minY, point.y);
-                maxY = Math.Max(maxY, point.y);
-
                 points.Add(point);                    
             }
-            Console.WriteLine("Second 0"); 
-//            PrintPoints(points, minX, maxX, minY, maxY);
+            Console.WriteLine("Second 0");
+            //            PrintPoints(points, minX, maxX, minY, maxY);
 
-            for (int i=0; i<1000000; i++)
+            Nullable<(int X, int Y)> max = null, min = null;
+            for (int i=1; i<1000000; i++)
             {
-                int newMinX = Int32.MaxValue, newMaxX = Int32.MinValue, newMinY = Int32.MaxValue, newMaxY = Int32.MinValue;
                 foreach (var point in points)
                 {
-                    string oldPoint = point.ToString();
-
-                    point.x += point.velX;
-                    point.y += point.velY;
-                    newMinX = Math.Min(newMinX, point.x);
-                    newMaxX = Math.Max(newMaxX, point.x);
-                    newMinY = Math.Min(newMinY, point.y);
-                    newMaxY = Math.Max(newMaxY, point.y);
+                    point.Move();
                 }
-                if ((newMaxX - newMinX < maxX - minX && newMaxX - newMinX < 100) || (newMaxY-newMinY < maxY - minY && newMaxY-newMinY < 50))
+                (int X, int Y) newMax = points.Select(p => (p.X, p.Y)).Aggregate(((int x, int y) p1, (int x, int y) p2) => (Math.Max(p1.x, p2.x), Math.Max(p1.y, p2.y)));
+                (int X, int Y) newMin = points.Select(p => (p.X, p.Y)).Aggregate(((int x, int y) p1, (int x, int y) p2) => (Math.Min(p1.x, p2.x), Math.Min(p1.y, p2.y)));
+                if (max == null) max = newMax;
+                if (min == null) min = newMin;
+
+                if ((newMax.X - newMin.X < max.Value.X - min.Value.X && newMax.X - newMin.X < 100) ||
+                    (newMax.Y - newMin.Y < max.Value.Y - min.Value.Y && newMax.Y - newMin.Y < 50))
                 {
                     Console.WriteLine($"Second {i}");
-                    PrintPoints(points, newMinX, newMaxX, newMinY, newMaxY);
+                    PrintPoints(points, newMin.X, newMax.X, newMin.Y, newMax.Y);
                 }
-                if (newMaxX - newMinX > maxX - minX && newMaxY - newMinY > maxY - minY) break;
-                minX = newMinX; maxX = newMaxX; minY = newMinY; maxY = newMaxY;
+                if (newMax.X - newMin.X > max.Value.X - min.Value.X && newMax.Y - newMin.Y > max.Value.Y - min.Value.Y) break;
+                min = newMin; max = newMax;
             }
 
-            Console.WriteLine($"{0} ");
+            Console.WriteLine($"Done");
             Console.ReadKey();
         }
     }
