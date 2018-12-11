@@ -6,85 +6,63 @@ using System.Text;
 namespace Advent2018_common
 {
 
-    class Point
-    {
-        public int X { get; set; }
-        public int Y { get; set; }
-
-        private readonly int velX;
-        private readonly int velY;
-
-        public  Point (string input)
-        {
-            var split = input.Split(" <>=,".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)
-                .ToArray();
-            this.X = Convert.ToInt32(split[1]);
-            this.Y = Convert.ToInt32(split[2]);
-            this.velX = Convert.ToInt32(split[4]);
-            this.velY = Convert.ToInt32(split[5]);
-        }
-        public void Move()
-        {
-            X += velX;
-            Y += velY;
-        }
-        public override string ToString()
-        {
-            return $"({X},{Y})";
-        }
-    }
-
     class MainClass
     {
-        public static void PrintPoints(List<Point> points, int minX, int maxX, int minY, int maxY)
+        public static Dictionary<(int X, int Y), int> Cache = new Dictionary<(int X, int Y), int>();
+
+        public static int CalcPower(int x, int y, int grid)
         {
-            for (var y = minY; y<=maxY; y++)
-            {
-                for (int x = minX; x<= maxX; x++)
-                {
-                    if (points.Exists(p => p.X == x && p.Y == y)) Console.Write("#");
-                    else Console.Write(".");
-                }
-                Console.WriteLine();
-            }
+            //if (Cache.ContainsKey((x, y)))
+            //{
+            //    return Cache[(x, y)];
+            //}
+            if (x > 300 || y > 300) return 0;
+            int result = (((x + 10) * y) + grid) * (x + 10);
+            result = ((result / 100) % 10) - 5;
+            //Cache[(x, y)] = result;
+            return result;
         }
         public static void Main(string[] args)
         {
-            string[] input = System.IO.File.ReadAllLines("../../input.txt");
+            // string[] input = System.IO.File.ReadAllLines("../../input.txt");
 
-            var points = new List<Point>();
-            
-            foreach (var line in input)
+            //Console.WriteLine($"Power at 122,79 for grid 57: {CalcPower(x: 122, y: 79, grid: 57)}");
+            //Console.WriteLine($"Power at 217,196 for grid 39: {CalcPower(x: 217, y: 196, grid: 39)} ");
+            //Console.WriteLine($"Power at 101,153 for grid 71: {CalcPower(x: 101, y: 153, grid: 71)}");
+
+
+
+            var grid = 6878;
+            var maxSum = 0;
+            (int X, int Y, int Size) topLeft = (0, 0, 0);
+
+            for (int squareSize = 1; squareSize < 300; squareSize++)
             {
-                var point = new Point(line);
-                points.Add(point);                    
-            }
-            Console.WriteLine("Second 0");
-            //            PrintPoints(points, minX, maxX, minY, maxY);
-
-            Nullable<(int X, int Y)> max = null, min = null;
-            for (int i=1; i<1000000; i++)
-            {
-                foreach (var point in points)
+                for (int y = 1; y <= 300-squareSize+1; y++)
                 {
-                    point.Move();
-                }
-                (int X, int Y) newMax = points.Select(p => (p.X, p.Y)).Aggregate(((int x, int y) p1, (int x, int y) p2) => (Math.Max(p1.x, p2.x), Math.Max(p1.y, p2.y)));
-                (int X, int Y) newMin = points.Select(p => (p.X, p.Y)).Aggregate(((int x, int y) p1, (int x, int y) p2) => (Math.Min(p1.x, p2.x), Math.Min(p1.y, p2.y)));
-                if (max == null) max = newMax;
-                if (min == null) min = newMin;
+                    for (int x = 1; x <= 300 - squareSize + 1; x++)
+                    {
+                        int sum = 0;
+                        for (int dx = 0; dx < squareSize; dx++)
+                        {
+                            for (int dy = 0; dy < squareSize; dy++)
+                            {
+                                sum += CalcPower(x + dx, y + dy, grid);
 
-                if ((newMax.X - newMin.X < max.Value.X - min.Value.X && newMax.X - newMin.X < 100) ||
-                    (newMax.Y - newMin.Y < max.Value.Y - min.Value.Y && newMax.Y - newMin.Y < 50))
-                {
-                    Console.WriteLine($"Second {i}");
-                    PrintPoints(points, newMin.X, newMax.X, newMin.Y, newMax.Y);
+                            }
+                        }
+                        if (sum > maxSum)
+                        {
+                            maxSum = sum;
+                            topLeft = (x, y, squareSize);
+                        }
+                    }
+
                 }
-                if (newMax.X - newMin.X > max.Value.X - min.Value.X && newMax.Y - newMin.Y > max.Value.Y - min.Value.Y) break;
-                min = newMin; max = newMax;
+                Console.WriteLine($"After square {squareSize}: {maxSum} at {topLeft.X},{topLeft.Y},{topLeft.Size}");
             }
 
-            Console.WriteLine($"Done");
+            Console.WriteLine($"Maxmimum sum {maxSum} at {topLeft.X},{topLeft.Y},{topLeft.Size}");
             Console.ReadKey();
         }
     }
