@@ -39,8 +39,10 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="input.txt" />
-    <None Include="test.txt" />
     <None Include="EmptyTextFile.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="test2.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
