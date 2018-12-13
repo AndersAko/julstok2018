@@ -58,21 +58,22 @@ namespace Advent2018_common
 
         public static void Main(string[] args)
         {
-            string[] input = System.IO.File.ReadAllLines("../../input.txt");
+            string[] input = System.IO.File.ReadAllLines("../../testPart2.txt");
 
-            string[] tracks = new string [input.Length];    // Same format as input, but without carts
+            string[] tracks = new string[input.Length];    // Same format as input, but without carts
             var carts = new List<Cart>();
 
             for (int row = 0; row < input.Length; row++)
             {
                 try
                 {
-                    int index = 0; 
-                    while (true) {
+                    int index = 0;
+                    while (true)
+                    {
                         var cartIndex = input[row].IndexOfAny("^<v>".ToCharArray(), index);
                         if (cartIndex == -1) break;
                         index = cartIndex + 1;
-                        var dir=0;
+                        var dir = 0;
                         switch (input[row][cartIndex])
                         {
                             case '^':
@@ -90,13 +91,14 @@ namespace Advent2018_common
                         }
                         carts.Add(new Cart(row, cartIndex, dir));
                     }
-                } catch (ArgumentNullException) { };
+                }
+                catch (ArgumentNullException) { };
                 var line = input[row].Replace('^', '|').Replace('v', '|').Replace('<', '-').Replace('>', '-');
                 tracks[row] = line;
             }
 
             Console.WriteLine("Initial position");
-            for (int row=0; row<tracks.Length; row++)
+            for (int row = 0; row < tracks.Length; row++)
             {
                 var line = tracks[row].ToCharArray();
                 foreach (var cart in carts.Where(c => c.Pos.Y == row))
@@ -106,38 +108,43 @@ namespace Advent2018_common
                 Console.WriteLine(new String(line));
             }
 
-            while (true)
+            while (carts.Count > 1)
             {
                 foreach (var cart in carts.OrderBy(c => c.Pos.Y).OrderBy(c => c.Pos.X))
                 {
                     cart.NextPos(tracks);
+
                     var collisionAt = carts.GroupBy(c => c.Pos).Where(g => g.Count() > 1);
-                   
+
                     if (collisionAt.Any())
                     {
+                        for (int row = 0; row < tracks.Length; row++)
+                        {
+                            var line = tracks[row].ToCharArray();
+                            var cartText = new StringBuilder();
+                            foreach (var c in carts.Where(c => c.Pos.Y == row).OrderBy(c => c.Pos.X))
+                            {
+                                line[c.Pos.X] = c.Symbol();
+                                cartText.Append($"({c.Pos.X},{c.Pos.Y}): {c.Symbol()} {c.nextTurn}   ");
+                            }
+                            Console.WriteLine(new String(line) + cartText.ToString());
+                        }
+
                         var crashSite = collisionAt.First().Key;
 
                         Console.WriteLine($"Bang! at {crashSite.X}, {crashSite.Y}");
-                        goto leave_loop;
+                        foreach (var c in collisionAt.First())
+                        {
+                            carts.Remove(c);
+                        }
+                        Console.WriteLine($"{carts.Count} carts remaining");
                     }
-                }
-                Console.WriteLine("---------");
-                for (int row = 0; row < tracks.Length; row++)
-                {
-                    var line = tracks[row].ToCharArray();
-                    var cartText = new StringBuilder();
-                    foreach (var cart in carts.Where(c => c.Pos.Y == row).OrderBy(c => c.Pos.X))
-                    {
-                        line[cart.Pos.X] = cart.Symbol();
-                        cartText.Append($"({cart.Pos.X},{cart.Pos.Y}): {cart.Symbol()} {cart.nextTurn}   ");
-
-                    }
-                    Console.WriteLine(new String(line) + cartText.ToString());
-                }
+                }  
             }
-        leave_loop:
+            Console.WriteLine($"{carts.First().Pos.X}, {carts.First().Pos.Y}");
+            carts.First().NextPos(tracks);
+            Console.WriteLine($"{carts.First().Pos.X}, {carts.First().Pos.Y}");
 
-            Console.WriteLine($"FINE");
             Console.ReadKey();
         }
     }
