@@ -141,9 +141,7 @@ namespace Advent2018_common
                     }
                 }  
             }
-            Console.WriteLine($"{carts.First().Pos.X}, {carts.First().Pos.Y}");
-            carts.First().NextPos(tracks);
-            Console.WriteLine($"{carts.First().Pos.X}, {carts.First().Pos.Y}");
+            Console.WriteLine($"One cart remaining at {carts.First().Pos.X}, {carts.First().Pos.Y}");
 
             Console.ReadKey();
         }
