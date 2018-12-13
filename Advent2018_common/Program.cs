@@ -19,7 +19,7 @@ namespace Advent2018_common
                 state.Length++;
                 state[state.Length - 1] = (c == '#');
             }
-            state.Length += 3;
+            state.Length += 4;
         }
         public Pots (BitArray b, int i)
         {
@@ -32,7 +32,7 @@ namespace Advent2018_common
             var nextStartIndex = StartIndex;
            
 
-            for (int i=0; i<state.Length-5; i++)
+            for (int i=0; i<state.Length-4; i++)
             {
                 foreach (var p in patterns)
                 {
@@ -51,12 +51,33 @@ namespace Advent2018_common
                         if (i==0)
                         {
                             nextStartIndex--;
+                            nextState.Length++;
                         }
+                        if (i + 2 + StartIndex - nextStartIndex > nextState.Length - 5)
+                            nextState.Length++;
                         nextState[i + 2 + StartIndex - nextStartIndex] = true;
                     } 
                 }
             }
             return new Pots(nextState, nextStartIndex);
+        }
+        public int SumPlantNo()
+        {
+            var sum = 0;
+            for (int i=0;  i<state.Length; i++)
+            {
+                if (state[i]) sum += StartIndex + i;
+            }
+            return sum;
+        }
+        public int Count()
+        {
+            var count = 0;
+            for (int i = 0; i < state.Length; i++)
+            {
+                if (state[i]) count++;
+            }
+            return count;
         }
         public override string ToString()
         {
@@ -74,7 +95,7 @@ namespace Advent2018_common
 
         public static void Main(string[] args)
         {
-            string[] input = System.IO.File.ReadAllLines("../../test.txt");
+            string[] input = System.IO.File.ReadAllLines("../../input.txt");
             Pots pots = new Pots(input[0].Split(" :".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)[2]);
 
             var patterns = new List<BitArray>();
@@ -87,13 +108,14 @@ namespace Advent2018_common
                     patterns.Add(pattern);
                 }
             }
-            
-            for (var generation = 1; generation<=20; generation++)
+
+            Console.WriteLine($"{0,3}:{new String(' ', 7 + pots.StartIndex)}{pots}");
+            for (Int64 generation = 1; generation<= 200; generation++)
             {
                 pots = pots.NextGeneration(patterns);
-                Console.WriteLine($"{generation,3}:{new String(' ',7+pots.StartIndex)}{pots}");
+                Console.WriteLine($"{generation,3}:{new String(' ',7+pots.StartIndex)}{pots}: {pots.SumPlantNo()} #{pots.Count()}");
             }
-            Console.WriteLine($"Maxmimum sum");
+            Console.WriteLine($"Maxmimum sum after 50 billion: {(50000000000L-111) *20 + 2728 }");
             Console.ReadKey();
         }
     }
