@@ -10,54 +10,16 @@ namespace Advent2018_common
 
     class MainClass
     {
-        public static string Puzzle(int numberOfRecipesBefore)
+        public static IEnumerable<int> Recipe()
         {
             var recipes = new List<int> { 3, 7 };
+            yield return 3;
+            yield return 7;
+
             int elfOne = 0;
             int elfTwo = 1;
 
-            for (int i = 0; i < numberOfRecipesBefore + 10; i++)
-            {
-                // Create new recipies
-                var newMix = recipes[elfOne] + recipes[elfTwo];
-                var newRecipe = newMix / 10;
-                if (newRecipe != 0) recipes.Add(newRecipe);
-
-                newRecipe = newMix % 10;
-                recipes.Add(newRecipe);
-
-                // Move
-                elfOne = (elfOne + 1 + recipes[elfOne]) % recipes.Count;
-
-                elfTwo = (elfTwo + 1 + recipes[elfTwo]) % recipes.Count;
-
-                if (i<20)
-                {
-                    Console.Write($"{i} - {elfOne};{elfTwo}: ");
-                    foreach (var r in recipes)
-                    {
-                        Console.Write($"{r} ");
-                    }
-                    Console.WriteLine();
-                }
-            }
-            var result = new StringBuilder();
-            for (int i=numberOfRecipesBefore; i<numberOfRecipesBefore+10; i++)
-            {
-                result.Append($"{recipes[i]}");
-            }
-            return result.ToString();
-        }
-
-        public static int PuzzlePattern(string pattern)
-        {
-            var recipes = new List<int> { 3, 7 };
-            int elfOne = 0;
-            int elfTwo = 1;
-
-            var recipeString = new StringBuilder("37");
-
-            for (int i=0; ; i++)
+            while (true) 
             {
                 // Create new recipies
                 var newMix = recipes[elfOne] + recipes[elfTwo];
@@ -65,8 +27,42 @@ namespace Advent2018_common
                 if (newRecipe != 0)
                 {
                     recipes.Add(newRecipe);
-                    recipeString.Append($"{newRecipe}");
+                    yield return newRecipe;
                 }
+                newRecipe = newMix % 10;
+                recipes.Add(newRecipe);
+                yield return newRecipe;
+
+                // Move
+                elfOne = (elfOne + 1 + recipes[elfOne]) % recipes.Count;
+                elfTwo = (elfTwo + 1 + recipes[elfTwo]) % recipes.Count;
+            }
+        }
+
+
+        public static string Puzzle(int numberOfRecipesBefore)
+        {
+            var recipes = Recipe().GetEnumerator();
+            for (int i=0; i<numberOfRecipesBefore; i++)
+            {
+                if (!recipes.MoveNext()) break;
+            }
+            var result = new StringBuilder();
+            for (int i = 0; i < 10; i++)
+            {
+                if (recipes.MoveNext()) result.Append($"{recipes.Current}");
+                else break;
+            }
+            return result.ToString();
+        }
+
+        public static int PuzzlePattern(string pattern)
+        {
+            var recipes = Recipe().GetEnumerator();
+            var recipeString = new StringBuilder("");
+            for (int i=0; recipes.MoveNext(); i++)
+            {
+                recipeString.Append($"{recipes.Current}");
                 if (recipeString.Length >= pattern.Length)
                 {
                     char[] end = new char[pattern.Length];
@@ -76,45 +72,36 @@ namespace Advent2018_common
 
                     if (pattern.Equals(new string(end)))
                     {
-                        Console.WriteLine($"Pattern {pattern} is matching at {i}: {recipeString}");
+                        // Console.WriteLine($"Pattern {pattern} is matching at {i}: {recipeString}");
                         return recipeString.Length - pattern.Length;
                     }
                 }
-
-                newRecipe = newMix % 10;
-                recipes.Add(newRecipe);
-                recipeString.Append($"{newRecipe}");
-
-                if (recipeString.Length >= 5)
-                {
-                    char[] end = new char[pattern.Length];
-
-                    recipeString.CopyTo(recipeString.Length - pattern.Length, end, 0, pattern.Length);
-                    var endString = new string(end);
-
-                    if (pattern.Equals(new string(end)))
-                    {
-                        Console.WriteLine($"Pattern {pattern} is matching at {i}: {recipeString}");
-                        return recipeString.Length - pattern.Length;
-                    }
-                }
-
-                // Move
-                elfOne = (elfOne + 1 + recipes[elfOne]) % recipes.Count;
-
-                elfTwo = (elfTwo + 1 + recipes[elfTwo]) % recipes.Count;
-
-                if (i < 20)
-                {
-                    Console.Write($"{i} - {elfOne};{elfTwo}: ");
-                    foreach (var r in recipes)
-                    {
-                        Console.Write($"{r} ");
-                    }
-                    Console.WriteLine(recipeString);
-                }
-                
             }
+            return 0;
+        }
+        public static int PuzzlePattern2(string pattern)
+        {
+            var recipes = Recipe().GetEnumerator();
+            var matches = new List<int>();  // Index into pattern where matches are found
+
+            for (int i = 0; recipes.MoveNext(); i++)
+            {
+                var newMatches = new List<int>();
+                if (recipes.Current == pattern[0]-'0')
+                {
+                    newMatches.Add(1); // Pattern matched, next character to match for is index 1
+                }
+                foreach (var m in matches)
+                {
+                    if (recipes.Current == pattern[m] - '0')
+                    {
+                        if (m == pattern.Length - 1) return i-pattern.Length+1;
+                        newMatches.Add(m + 1);      // Still matching, check next character
+                    }
+                }
+                matches = newMatches;
+            }
+            return 0;
         }
 
         public static void Main(string[] args)
@@ -127,11 +114,15 @@ namespace Advent2018_common
             Console.WriteLine($"Scores after 074501: {Puzzle(074501)}");
 
             Console.WriteLine(PuzzlePattern("51589"));
+            Console.WriteLine(PuzzlePattern2("51589"));
             Console.WriteLine(PuzzlePattern("01245"));
+            Console.WriteLine(PuzzlePattern2("01245"));
             Console.WriteLine(PuzzlePattern("92510"));
+            Console.WriteLine(PuzzlePattern2("92510"));
             Console.WriteLine(PuzzlePattern("59414"));
+            Console.WriteLine(PuzzlePattern2("59414"));
             Console.WriteLine(PuzzlePattern("074501"));
-
+            Console.WriteLine(PuzzlePattern2("074501"));
 
             Console.ReadKey();
         }
