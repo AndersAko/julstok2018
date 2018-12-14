@@ -96,7 +96,7 @@ namespace Advent2018_common
 
                     if (pattern.Equals(new string(end) ))
                     {
-                        Console.WriteLine("Pattern {pattern} is matching at {i}: {recipeString}");
+                        Console.WriteLine($"Pattern {pattern} is matching at {i}: {recipeString}");
                         return recipeString.Length - pattern.Length;
                     }
                 }
