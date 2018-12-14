@@ -113,15 +113,10 @@ namespace Advent2018_common
             Console.WriteLine($"Scores after 18: {Puzzle(18)}");
             Console.WriteLine($"Scores after 074501: {Puzzle(074501)}");
 
-            Console.WriteLine(PuzzlePattern("51589"));
             Console.WriteLine(PuzzlePattern2("51589"));
-            Console.WriteLine(PuzzlePattern("01245"));
             Console.WriteLine(PuzzlePattern2("01245"));
-            Console.WriteLine(PuzzlePattern("92510"));
             Console.WriteLine(PuzzlePattern2("92510"));
-            Console.WriteLine(PuzzlePattern("59414"));
             Console.WriteLine(PuzzlePattern2("59414"));
-            Console.WriteLine(PuzzlePattern("074501"));
             Console.WriteLine(PuzzlePattern2("074501"));
 
             Console.ReadKey();
