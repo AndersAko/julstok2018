@@ -67,10 +67,37 @@ namespace Advent2018_common
                     recipes.Add(newRecipe);
                     recipeString.Append($"{newRecipe}");
                 }
+                if (recipeString.Length >= pattern.Length)
+                {
+                    char[] end = new char[pattern.Length];
+
+                    recipeString.CopyTo(recipeString.Length - pattern.Length, end, 0, pattern.Length);
+                    var endString = new string(end);
+
+                    if (pattern.Equals(new string(end)))
+                    {
+                        Console.WriteLine($"Pattern {pattern} is matching at {i}: {recipeString}");
+                        return recipeString.Length - pattern.Length;
+                    }
+                }
 
                 newRecipe = newMix % 10;
                 recipes.Add(newRecipe);
                 recipeString.Append($"{newRecipe}");
+
+                if (recipeString.Length >= 5)
+                {
+                    char[] end = new char[pattern.Length];
+
+                    recipeString.CopyTo(recipeString.Length - pattern.Length, end, 0, pattern.Length);
+                    var endString = new string(end);
+
+                    if (pattern.Equals(new string(end)))
+                    {
+                        Console.WriteLine($"Pattern {pattern} is matching at {i}: {recipeString}");
+                        return recipeString.Length - pattern.Length;
+                    }
+                }
 
                 // Move
                 elfOne = (elfOne + 1 + recipes[elfOne]) % recipes.Count;
@@ -87,19 +114,6 @@ namespace Advent2018_common
                     Console.WriteLine(recipeString);
                 }
                 
-                if (recipeString.Length >=5)
-                {
-                    char[] end = new char[pattern.Length];
-
-                    recipeString.CopyTo(recipeString.Length - pattern.Length, end, 0, pattern.Length);
-                    var endString = new string (end);
-
-                    if (pattern.Equals(new string(end) ))
-                    {
-                        Console.WriteLine($"Pattern {pattern} is matching at {i}: {recipeString}");
-                        return recipeString.Length - pattern.Length;
-                    }
-                }
             }
         }
 
