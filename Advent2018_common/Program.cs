@@ -7,118 +7,244 @@ using System.Text;
 
 namespace Advent2018_common
 {
+    abstract class Unit
+    {
+        struct Route
+        {
+            internal (int X, int Y) endPos;
+            internal List<(int X, int Y)> path;
+            internal Route((int X, int Y) endPos, List<(int X, int Y)> path)
+            {
+                this.endPos = endPos;
+                this.path = new List<(int X, int Y)>(path);
+                this.path.Add(endPos);
+            }
+            internal Route((int X, int Y) endPos) : this(endPos, new List<(int X, int Y)>()) { }
+            public override string ToString()
+            {
+                return $"{path.Count}:{endPos.Y}.{endPos.X}";
+            }
+        }
+        public (int X, int Y) Pos;
+        public int hp;
+        public Unit(int X, int Y)
+        {
+            hp = 200;
+            this.Pos = (X, Y);
+        }
+        public Unit (Unit unitToCopy)
+        {
+            Pos = unitToCopy.Pos;
+            hp = 200;
+        }
+        public abstract char Symbol();
+        // Move this unit to the closest reachable unit and return list of potential melee targets
+        public List<Unit> MoveAndFindTargets(List<string> maze, List<Unit> units)
+        {
+            // Already in range, no need to move
+            var meleeUnits = FindMeleeUnits(units);
+            if (meleeUnits.Any()) return meleeUnits;
+
+            // Otherwise, look for closest path to closest target
+            // Console.WriteLine($"Finding path for {this}");
+            var movesToSearch = new SortedList<string, Route>();
+            foreach (var newMove in PossibleMoves(Pos, maze, units).Select(m => new Route(m))) {
+                movesToSearch[newMove.ToString()] = newMove;
+            }
+            var examinedRoutes = new HashSet<(int X, int Y)>();
+
+            while (movesToSearch.Any())
+            {
+                // Pick next position in list
+                var checkPosition = movesToSearch.First();
+                movesToSearch.RemoveAt(0);
+                examinedRoutes.Add(checkPosition.Value.endPos);
+
+                //Console.WriteLine($"Checking {checkPosition.Value}");
+
+                // If Adjacent to another unit, return a list of all melee units
+                var closestUnits = units.Where(u => u.GetType() != this.GetType())
+                                        .Where(u => new List<(int X, int Y)> { (0, -1), (-1, 0), (1, 0), (0, 1) }
+                                                        .Any(delta => u.Pos.X == checkPosition.Value.endPos.X + delta.X && u.Pos.Y == checkPosition.Value.endPos.Y + delta.Y));
+                if (closestUnits.Any())
+                {
+                    Pos = checkPosition.Value.path[0];    // First step
+                    return closestUnits.ToList();
+                }
+                // Find possible moves from here and add to list
+                foreach (var newMove in PossibleMoves(checkPosition.Value.endPos, maze, units)
+                                       .Where(newMove => !examinedRoutes.Contains(newMove))
+                                       .Select(m => new Route(m, checkPosition.Value.path)))
+                {
+                    movesToSearch[newMove.ToString()] = newMove;
+                }
+            }
+            //Console.WriteLine($"No units are reachable from {this}");
+            //MainClass.PrintMaze(maze, units);
+            return new List<Unit>();
+
+        }
+        static List<(int X, int Y)> PossibleMoves((int X, int Y) pos, List<string> maze, List<Unit> units)
+        {
+            var result = new List<(int X, int Y)>();
+            foreach (var delta in new List<(int X, int Y)> { (0, -1), (-1, 0), (1, 0), (0, 1) })
+            {
+                if (maze[pos.Y + delta.Y][pos.X + delta.X] == '.' && !units.Any(u => u.Pos.X == pos.X + delta.X && u.Pos.Y == pos.Y + delta.Y))
+                {
+                    result.Add((pos.X + delta.X, pos.Y + delta.Y));
+                }
+            }
+            return result;
+        }
+        public List<Unit> FindMeleeUnits(List<Unit> units)
+        {
+            var closestUnits = units.Where(u => u.GetType() != this.GetType())
+                                    .Where(u => new List<(int X, int Y)> { (0, -1), (-1, 0), (1, 0), (0, 1) }
+                                                    .Any(delta => u.Pos.X == Pos.X + delta.X && u.Pos.Y == Pos.Y + delta.Y));
+            //if (closestUnits.Any()) Console.WriteLine($"The {this.GetType()} at {Pos} can directly attack {String.Join(",", closestUnits)}");
+            return closestUnits.ToList();
+        }
+        public override string ToString()
+        {
+            return $"{Symbol()}{Pos}";
+        }
+    }
+    class Elf : Unit
+    {
+        public Elf(int X, int Y) : base(X, Y)
+        {
+        }
+        public Elf (Elf e) : base(e) { }
+        public override char Symbol() { return 'E'; }
+    }
+    class Goblin : Unit
+    {
+        public Goblin(int X, int Y) : base(X, Y)
+        {
+
+        }
+        public Goblin(Goblin g) : base(g) { }
+        public override char Symbol() { return 'G'; }
+    }
 
     class MainClass
     {
-        public static IEnumerable<int> Recipe()
+        public static void PrintMaze(List<string> maze, List<Unit> units)
         {
-            var recipes = new List<int> { 3, 7 };
-            yield return 3;
-            yield return 7;
-
-            int elfOne = 0;
-            int elfTwo = 1;
-
-            while (true) 
+            for (int i = 0; i < maze.Count; i++)
             {
-                // Create new recipies
-                var newMix = recipes[elfOne] + recipes[elfTwo];
-                var newRecipe = newMix / 10;
-                if (newRecipe != 0)
+                var line = new StringBuilder(maze[i]);
+                foreach (var unitInLine in units.Where(u => u.Pos.Y == i))
                 {
-                    recipes.Add(newRecipe);
-                    yield return newRecipe;
+                    line[unitInLine.Pos.X] = unitInLine.Symbol();
+                    line.Append($"  {unitInLine}:{unitInLine.hp}");
                 }
-                newRecipe = newMix % 10;
-                recipes.Add(newRecipe);
-                yield return newRecipe;
-
-                // Move
-                elfOne = (elfOne + 1 + recipes[elfOne]) % recipes.Count;
-                elfTwo = (elfTwo + 1 + recipes[elfTwo]) % recipes.Count;
+                Console.WriteLine(line.ToString());
             }
+            Console.WriteLine();
         }
-
-
-        public static string Puzzle(int numberOfRecipesBefore)
+        public static int RunCombat(List<string> maze, List <Unit> units, int elfAttackPower, bool acceptElfDeath)
         {
-            var recipes = Recipe().GetEnumerator();
-            for (int i=0; i<numberOfRecipesBefore; i++)
+            var round = 1;
+            for (; ; round++)
             {
-                if (!recipes.MoveNext()) break;
-            }
-            var result = new StringBuilder();
-            for (int i = 0; i < 10; i++)
-            {
-                if (recipes.MoveNext()) result.Append($"{recipes.Current}");
-                else break;
-            }
-            return result.ToString();
-        }
-
-        public static int PuzzlePattern(string pattern)
-        {
-            var recipes = Recipe().GetEnumerator();
-            var recipeString = new StringBuilder("");
-            for (int i=0; recipes.MoveNext(); i++)
-            {
-                recipeString.Append($"{recipes.Current}");
-                if (recipeString.Length >= pattern.Length)
+                foreach (var unit in units.OrderBy((u) => u.Pos.Y).ThenBy(u => u.Pos.X).ToList())
                 {
-                    char[] end = new char[pattern.Length];
+                    if (unit.hp <= 0)
+                        continue;
+                    if (!units.Any(u => u.GetType() != unit.GetType())) goto combat_complete;
+                    var oldPosition = unit.Pos;
+                    var targets = unit.MoveAndFindTargets(maze, units);
 
-                    recipeString.CopyTo(recipeString.Length - pattern.Length, end, 0, pattern.Length);
-                    var endString = new string(end);
-
-                    if (pattern.Equals(new string(end)))
+                    var meleeUnits = unit.FindMeleeUnits(units);
+                    if (meleeUnits.Any())
                     {
-                        // Console.WriteLine($"Pattern {pattern} is matching at {i}: {recipeString}");
-                        return recipeString.Length - pattern.Length;
+
+                        var unitToAttack = meleeUnits.OrderBy(u => u.hp).ThenBy(u => u.Pos.Y).ThenBy(u => u.Pos.X).First();
+                        if (unit is Goblin)
+                        {
+                            unitToAttack.hp -= 3;
+                            if (unitToAttack.hp <= 0 && !acceptElfDeath)
+                            {
+                                Console.WriteLine("An elf dies, we cannot have that!");
+                                return -1;    // No elf may be harmed!
+                            }
+                        }
+                        else
+                        {
+                            unitToAttack.hp -= elfAttackPower;
+                        }
+                        if (unitToAttack.hp <= 0)
+                        {
+                            units.Remove(unitToAttack);
+                        }
                     }
                 }
+                Console.WriteLine($"After {round} round(s):");
+                PrintMaze(maze, units);
             }
-            return 0;
+        combat_complete:
+            round--;    // Last round was not complete
+            Console.WriteLine($"Combat ended after {round} rounds with attack power of {elfAttackPower}: ");
+            Console.WriteLine($"{units.Count} units remaining with a total of {units.Sum(u => u.hp)}");
+            Console.WriteLine($"Outcome: {units.Sum(u => u.hp) * round}");
+            return units.Sum(u => u.hp) * round;
         }
-        public static int PuzzlePattern2(string pattern)
-        {
-            var recipes = Recipe().GetEnumerator();
-            var matches = new List<int>();  // Index into pattern where matches are found
-
-            for (int i = 0; recipes.MoveNext(); i++)
-            {
-                var newMatches = new List<int>();
-                if (recipes.Current == pattern[0]-'0')
-                {
-                    newMatches.Add(1); // Pattern matched, next character to match for is index 1
-                }
-                foreach (var m in matches)
-                {
-                    if (recipes.Current == pattern[m] - '0')
-                    {
-                        if (m == pattern.Length - 1) return i-pattern.Length+1;
-                        newMatches.Add(m + 1);      // Still matching, check next character
-                    }
-                }
-                matches = newMatches;
-            }
-            return 0;
-        }
-
         public static void Main(string[] args)
         {
-            //    string[] input = System.IO.File.ReadAllLines("../../testPart2.txt");
+            string[] input = System.IO.File.ReadAllLines("../../input.txt");
+            var maze = new List<string>(); // # = wall .=open
+            var initialUnits = new List<Unit>();
 
-            Console.WriteLine($"Scores after 9: {Puzzle(9)}");
-            Console.WriteLine($"Scores after 5: {Puzzle(5)}");
-            Console.WriteLine($"Scores after 18: {Puzzle(18)}");
-            Console.WriteLine($"Scores after 074501: {Puzzle(074501)}");
+            for (int i = 0; i < input.Length; i++)
+            {
+                var line = input[i];
+                int index = -1;
+                while ((index = line.IndexOf('G', index + 1)) != -1)
+                {
+                    var goblin = new Goblin(index, i);
+                    initialUnits.Add(goblin);
+                }
+                while ((index = line.IndexOf('E', index + 1)) != -1)
+                {
+                    var elf = new Elf(index, i);
+                    initialUnits.Add(elf);
+                }
+                line = line.Replace('G', '.').Replace('E', '.');
+                maze.Add(line);
+            }
 
-            Console.WriteLine(PuzzlePattern2("51589"));
-            Console.WriteLine(PuzzlePattern2("01245"));
-            Console.WriteLine(PuzzlePattern2("92510"));
-            Console.WriteLine(PuzzlePattern2("59414"));
-            Console.WriteLine(PuzzlePattern2("074501"));
+            Console.WriteLine("Initial position:");
+            PrintMaze(maze, initialUnits);
+            var outcome = RunCombat(maze, initialUnits, 3, true);
+            Console.WriteLine($"With default power of 3 and accepting deaths, the outcome was {outcome}:");
+            PrintMaze(maze, initialUnits);
 
+
+            outcome = -1;
+            List<Unit> units = null; 
+            for (int power=4; outcome == -1; power++)
+            {
+                units = new List<Unit>();
+                for (int i = 0; i < input.Length; i++)
+                {
+                    var line = input[i];
+                    int index = -1;
+                    while ((index = line.IndexOf('G', index + 1)) != -1)
+                    {
+                        var goblin = new Goblin(index, i);
+                        units.Add(goblin);
+                    }
+                    while ((index = line.IndexOf('E', index + 1)) != -1)
+                    {
+                        var elf = new Elf(index, i);
+                        units.Add(elf);
+                    }
+                }
+                outcome = RunCombat(maze, units, power, false);
+            }
+            Console.WriteLine($"At lowest increased power, the outcome was {outcome}.");
+            PrintMaze(maze, units);
             Console.ReadKey();
         }
     }
