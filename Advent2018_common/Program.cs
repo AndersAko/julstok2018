@@ -21,9 +21,19 @@ namespace Advent2018_common
             inputB = B;
             output = Out;
         }
-        public Instruction (string instruction) :this(instruction.Split(' ')[0], Convert.ToInt32(instruction.Split(' ')[1]), 
+        public Instruction(string instruction) : this(instruction.Split(' ')[0], Convert.ToInt32(instruction.Split(' ')[1]),
             Convert.ToInt32(instruction.Split(' ')[2]), Convert.ToInt32(instruction.Split(' ')[3]))
-        {        
+        {
+        }
+        public Instruction(int Opcode, int A, int B, int Out)
+        {
+            string[] instructionSet = { "eqri", "bori", "addi", "bani", "seti", "eqrr", "addr", "gtri",
+                                        "borr", "gtir", "setr", "eqir", "mulr", "muli", "gtrr", "banr" };
+
+            opCode = instructionSet[Opcode];
+            inputA = A;
+            inputB = B;
+            output = Out;
         }
 
         public int[] Execute(int[] inputRegisters)
@@ -58,7 +68,7 @@ namespace Advent2018_common
                     result[output] = inputRegisters[inputA] | inputB;
                     break;
                 case "setr":
-                    result[output] = inputRegisters[inputA]; 
+                    result[output] = inputRegisters[inputA];
                     break;
                 case "seti":
                     result[output] = inputA;
@@ -89,11 +99,11 @@ namespace Advent2018_common
 
     class MainClass
     {
-        public static int TestOpcodes(int[] before, int[] after, int A, int B, int C)
+        public static List<string> TestOpcodes(int[] before, int[] after, int A, int B, int C)
         {
             string[] opCodes = { "addr", "addi", "mulr", "muli", "banr", "bani", "borr", "bori", "setr", "seti", "gtir", "gtri", "gtrr", "eqir", "eqri", "eqrr" };
 
-            var matchingOpcodes = 0;
+            var matchingOpcodes = new List<string>();
             foreach (var opCode in opCodes)
             {
                 int[] beforeTest = new int[4];
@@ -103,8 +113,8 @@ namespace Advent2018_common
                 var afterExecuteTest = instr.Execute(beforeTest);
                 if (afterExecuteTest.SequenceEqual(after))
                 {
-                   // Console.WriteLine($"Found a match for {opCode}");
-                    matchingOpcodes++;
+                    // Console.WriteLine($"Found a match for {opCode}");
+                    matchingOpcodes.Add(opCode);
                 }
             }
             return matchingOpcodes;
@@ -112,8 +122,7 @@ namespace Advent2018_common
         public static void Main(string[] args)
         {
             string[] input = System.IO.File.ReadAllLines("../../input.txt");
-            
-           // var registers = new int[4];
+
 
             // Test code:
             var beforeTest = new int[] { 3, 2, 1, 1 };
@@ -123,6 +132,8 @@ namespace Advent2018_common
 
             var inputEnum = input.GetEnumerator();
             int matchThreeOrMore = 0;
+            var possibleOpcodes = new Dictionary<int, List<string>>();
+
             while (inputEnum.MoveNext())
             {
                 string line = inputEnum.Current as string;
@@ -138,14 +149,44 @@ namespace Advent2018_common
                 line = inputEnum.Current as string;
                 var after = line.Split(" [,]".ToCharArray()).Where(x => Int32.TryParse(x, out int n)).Select(x => { if (Int32.TryParse(x, out int result)) return result; else return 0; }).ToArray();
 
-                if (TestOpcodes(before, after, instr[1], instr[2], instr[3]) >= 3 )
+                var matchingOpcodes = TestOpcodes(before, after, instr[1], instr[2], instr[3]);
+                if (matchingOpcodes.Count >= 3)
                 {
                     Console.WriteLine($"Found an input that matches more than 3: {String.Join(" ", instr)}");
                     matchThreeOrMore++;
                 }
+                if (possibleOpcodes.ContainsKey(instr[0]))
+                {
+                    possibleOpcodes[instr[0]] = possibleOpcodes[instr[0]].Intersect(matchingOpcodes).ToList();
+                }
+                else
+                {
+                    possibleOpcodes[instr[0]] = matchingOpcodes;
+                }
                 inputEnum.MoveNext();
             }
             Console.WriteLine($"A total of {matchThreeOrMore} patterns match three or more opcodes");
+            foreach (var opcode in possibleOpcodes)
+            {
+                Console.WriteLine($"{opcode.Key} {String.Join(" ", opcode.Value)}");
+            }
+
+            // Continue to sample program
+
+            var registers = new int[4];
+
+            while (inputEnum.MoveNext())
+            {
+                string line = inputEnum.Current as string;
+                if (line == "") continue;
+
+                var instr = line.Split(" [,]".ToCharArray()).Select(x => Convert.ToInt32(x)).ToArray();
+
+                var instruction = new Instruction(instr[0], instr[1], instr[2], instr[3]);
+                registers = instruction.Execute(registers);
+            }
+
+            Console.WriteLine($"Registers: {String.Join(" ", registers)}");
             Console.ReadKey();
         }
     }

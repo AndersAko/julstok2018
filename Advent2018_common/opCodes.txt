@@ -1,0 +1,16 @@
+﻿0   eqri
+1      bori      
+2  addi  
+3  bani
+4   seti      
+5     eqrr
+6 addr  
+7    gtri    
+8       borr      
+9  gtir
+10   setr
+11    eqir  
+12 mulr       
+13  muli
+14  gtrr
+15 banr
