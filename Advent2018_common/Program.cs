@@ -9,31 +9,80 @@ namespace Advent2018_common
 {
     struct Instruction
     {
-        string opCode;
+        public enum InstructionSet { eqri, bori, addi, bani, seti, eqrr, addr, gtri, borr, gtir, setr, eqir, mulr, muli, gtrr, banr, nop };
+        InstructionSet opCode;
         int inputA;
         int inputB;
         int output;
 
-        public Instruction(string Opcode, int A, int B, int Out)
+        public Instruction(InstructionSet Opcode, int A, int B, int Out)
         {
             opCode = Opcode;
             inputA = A;
             inputB = B;
             output = Out;
         }
-        public Instruction(string instruction) : this(instruction.Split(' ')[0], Convert.ToInt32(instruction.Split(' ')[1]),
-            Convert.ToInt32(instruction.Split(' ')[2]), Convert.ToInt32(instruction.Split(' ')[3]))
+        public Instruction(string instruction)
         {
-        }
-        public Instruction(int Opcode, int A, int B, int Out)
-        {
-            string[] instructionSet = { "eqri", "bori", "addi", "bani", "seti", "eqrr", "addr", "gtri",
-                                        "borr", "gtir", "setr", "eqir", "mulr", "muli", "gtrr", "banr" };
+            var args = instruction.Split(' ');
+            inputA = Convert.ToInt32(args[1]);
+            inputB = Convert.ToInt32(args[2]);
+            output = Convert.ToInt32(args[3]);
 
-            opCode = instructionSet[Opcode];
-            inputA = A;
-            inputB = B;
-            output = Out;
+            switch (args[0])
+            {
+                case "addr":
+                    opCode = InstructionSet.addr;
+                    break;
+                case "addi":
+                    opCode = InstructionSet.addi;
+                    break;
+                case "mulr":
+                    opCode = InstructionSet.mulr;
+                    break;
+                case "muli":
+                    opCode = InstructionSet.muli;
+                    break;
+                case "banr":
+                    opCode = InstructionSet.banr;
+                    break;
+                case "bani":
+                    opCode = InstructionSet.bani;
+                    break;
+                case "borr":
+                    opCode = InstructionSet.borr;
+                    break;
+                case "bori":
+                    opCode = InstructionSet.bori;
+                    break;
+                case "setr":
+                    opCode = InstructionSet.setr;
+                    break;
+                case "seti":
+                    opCode = InstructionSet.seti;
+                    break;
+                case "gtir":
+                    opCode = InstructionSet.gtir;
+                    break;
+                case "gtri":
+                    opCode = InstructionSet.gtri;
+                    break;
+                case "gtrr":
+                    opCode = InstructionSet.gtrr;
+                    break;
+                case "eqir":
+                    opCode = InstructionSet.eqir;
+                    break;
+                case "eqri":
+                    opCode = InstructionSet.eqri;
+                    break;
+                case "eqrr":
+                    opCode = InstructionSet.eqrr;
+                    break;
+                default:
+                    opCode = InstructionSet.nop;
+                    break;
+            }
         }
 
         public int[] Execute(int[] inputRegisters)
@@ -43,53 +92,55 @@ namespace Advent2018_common
 
             switch (opCode)
             {
-                case "addr":
+                case InstructionSet.addr:
                     result[output] = inputRegisters[inputA] + inputRegisters[inputB];
                     break;
-                case "addi":
+                case InstructionSet.addi:
                     result[output] = inputRegisters[inputA] + inputB;
                     break;
-                case "mulr":
+                case InstructionSet.mulr:
                     result[output] = inputRegisters[inputA] * inputRegisters[inputB];
                     break;
-                case "muli":
+                case InstructionSet.muli:
                     result[output] = inputRegisters[inputA] * inputB;
                     break;
-                case "banr":
+                case InstructionSet.banr:
                     result[output] = inputRegisters[inputA] & inputRegisters[inputB];
                     break;
-                case "bani":
+                case InstructionSet.bani:
                     result[output] = inputRegisters[inputA] & inputB;
                     break;
-                case "borr":
+                case InstructionSet.borr:
                     result[output] = inputRegisters[inputA] | inputRegisters[inputB];
                     break;
-                case "bori":
+                case InstructionSet.bori:
                     result[output] = inputRegisters[inputA] | inputB;
                     break;
-                case "setr":
+                case InstructionSet.setr:
                     result[output] = inputRegisters[inputA];
                     break;
-                case "seti":
+                case InstructionSet.seti:
                     result[output] = inputA;
                     break;
-                case "gtir":
+                case InstructionSet.gtir:
                     result[output] = inputA > inputRegisters[inputB] ? 1 : 0;
                     break;
-                case "gtri":
+                case InstructionSet.gtri:
                     result[output] = inputRegisters[inputA] > inputB ? 1 : 0;
                     break;
-                case "gtrr":
+                case InstructionSet.gtrr:
                     result[output] = inputRegisters[inputA] > inputRegisters[inputB] ? 1 : 0;
                     break;
-                case "eqir":
+                case InstructionSet.eqir:
                     result[output] = inputA == inputRegisters[inputB] ? 1 : 0;
                     break;
-                case "eqri":
+                case InstructionSet.eqri:
                     result[output] = inputRegisters[inputA] == inputB ? 1 : 0;
                     break;
-                case "eqrr":
+                case InstructionSet.eqrr:
                     result[output] = inputRegisters[inputA] == inputRegisters[inputB] ? 1 : 0;
+                    break;
+                case InstructionSet.nop:
                     break;
             }
             return result;
@@ -99,94 +150,38 @@ namespace Advent2018_common
 
     class MainClass
     {
-        public static List<string> TestOpcodes(int[] before, int[] after, int A, int B, int C)
-        {
-            string[] opCodes = { "addr", "addi", "mulr", "muli", "banr", "bani", "borr", "bori", "setr", "seti", "gtir", "gtri", "gtrr", "eqir", "eqri", "eqrr" };
-
-            var matchingOpcodes = new List<string>();
-            foreach (var opCode in opCodes)
-            {
-                int[] beforeTest = new int[4];
-
-                before.CopyTo(beforeTest, 0);
-                var instr = new Instruction(opCode, A, B, C);
-                var afterExecuteTest = instr.Execute(beforeTest);
-                if (afterExecuteTest.SequenceEqual(after))
-                {
-                    // Console.WriteLine($"Found a match for {opCode}");
-                    matchingOpcodes.Add(opCode);
-                }
-            }
-            return matchingOpcodes;
-        }
         public static void Main(string[] args)
         {
             string[] input = System.IO.File.ReadAllLines("../../input.txt");
 
+            int ipReg = -1;
+            var program = new List<Instruction>();
 
-            // Test code:
-            var beforeTest = new int[] { 3, 2, 1, 1 };
-            var afterTest = new int[] { 3, 2, 2, 1 };
-
-            Console.WriteLine($"{TestOpcodes(beforeTest, afterTest, 2, 1, 2)} match the given behaviour in the test case.");
-
-            var inputEnum = input.GetEnumerator();
-            int matchThreeOrMore = 0;
-            var possibleOpcodes = new Dictionary<int, List<string>>();
-
-            while (inputEnum.MoveNext())
+            foreach (var line in input)
             {
-                string line = inputEnum.Current as string;
-                if (!line.StartsWith("Before")) break;
-
-                var before = line.Split(" [,]".ToCharArray()).Where(x => Int32.TryParse(x, out int n)).Select(x => { if (Int32.TryParse(x, out int result)) return result; else return 0; }).ToArray();
-
-                inputEnum.MoveNext();
-                line = inputEnum.Current as string;
-                var instr = line.Split(" [,]".ToCharArray()).Select(x => Convert.ToInt32(x)).ToArray();
-
-                inputEnum.MoveNext();
-                line = inputEnum.Current as string;
-                var after = line.Split(" [,]".ToCharArray()).Where(x => Int32.TryParse(x, out int n)).Select(x => { if (Int32.TryParse(x, out int result)) return result; else return 0; }).ToArray();
-
-                var matchingOpcodes = TestOpcodes(before, after, instr[1], instr[2], instr[3]);
-                if (matchingOpcodes.Count >= 3)
+                if (line.StartsWith("#ip"))
                 {
-                    Console.WriteLine($"Found an input that matches more than 3: {String.Join(" ", instr)}");
-                    matchThreeOrMore++;
-                }
-                if (possibleOpcodes.ContainsKey(instr[0]))
-                {
-                    possibleOpcodes[instr[0]] = possibleOpcodes[instr[0]].Intersect(matchingOpcodes).ToList();
+                    ipReg = Convert.ToInt32(line.Split(' ')[1]);
                 }
                 else
                 {
-                    possibleOpcodes[instr[0]] = matchingOpcodes;
+                    var instr = new Instruction(line);
+                    program.Add(instr);
                 }
-                inputEnum.MoveNext();
             }
-            Console.WriteLine($"A total of {matchThreeOrMore} patterns match three or more opcodes");
-            foreach (var opcode in possibleOpcodes)
+
+            int[] registers = new int[6];
+            registers[0] = 1;
+
+            Int64 i = 0;
+            while (registers[ipReg] >= 0 && registers[ipReg] < program.Count)
             {
-                Console.WriteLine($"{opcode.Key} {String.Join(" ", opcode.Value)}");
+                var instr = program[registers[ipReg]];
+                registers = instr.Execute(registers);
+                registers[ipReg]++;
+                if (i++ % 10000000 == 0 || i < 10) Console.WriteLine($"Registers: {String.Join(" ", registers)}");
             }
-
-            // Continue to sample program
-
-            var registers = new int[4];
-
-            while (inputEnum.MoveNext())
-            {
-                string line = inputEnum.Current as string;
-                if (line == "") continue;
-
-                var instr = line.Split(" [,]".ToCharArray()).Select(x => Convert.ToInt32(x)).ToArray();
-
-                var instruction = new Instruction(instr[0], instr[1], instr[2], instr[3]);
-                registers = instruction.Execute(registers);
-            }
-
-            Console.WriteLine($"Registers: {String.Join(" ", registers)}");
+            Console.WriteLine($"Registers at end: {String.Join(" ", registers)}");
             Console.ReadKey();
         }
     }
