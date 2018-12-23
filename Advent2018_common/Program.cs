@@ -14,6 +14,7 @@ namespace Advent2018_common
         int inputA;
         int inputB;
         int output;
+        string comment;
 
         public Instruction(InstructionSet Opcode, int A, int B, int Out)
         {
@@ -21,13 +22,22 @@ namespace Advent2018_common
             inputA = A;
             inputB = B;
             output = Out;
+            comment = "";
         }
         public Instruction(string instruction)
         {
-            var args = instruction.Split(' ');
+            string [] args = instruction.Split(" ".ToCharArray(),  StringSplitOptions.RemoveEmptyEntries);
             inputA = Convert.ToInt32(args[1]);
             inputB = Convert.ToInt32(args[2]);
             output = Convert.ToInt32(args[3]);
+            if (args.Length >4)
+            {
+                comment = String.Join(" ", args.Skip(4));
+            }
+            else
+            {
+                comment = "";
+            }
 
             switch (args[0])
             {
@@ -89,7 +99,7 @@ namespace Advent2018_common
         {
             //var result = new Dictionary<int, int>(inputRegisters);
             var result = inputRegisters;
-
+            Console.Write($"{opCode} {inputA} {inputB} {output} {comment} [{String.Join(" ", inputRegisters)}]");
             switch (opCode)
             {
                 case InstructionSet.addr:
@@ -143,6 +153,7 @@ namespace Advent2018_common
                 case InstructionSet.nop:
                     break;
             }
+            Console.WriteLine($"[{String.Join(" ", result)}]");
             return result;
         }
     }
@@ -150,9 +161,26 @@ namespace Advent2018_common
 
     class MainClass
     {
+        public static int SumFactors(int x)
+        {
+            int result = 0;
+            for (int r3=1; r3<=x; r3++)
+            {
+                if (x % r3 ==0)
+                {
+                    result += r3;
+                }
+            }
+            return result;
+        }
+
         public static void Main(string[] args)
         {
-            string[] input = System.IO.File.ReadAllLines("../../input.txt");
+
+            Console.WriteLine($"Sum of factors for 915: {SumFactors(915)}");
+            Console.WriteLine($"Sum of factors for 10551315: {SumFactors(10551315)}");
+
+            string[] input = System.IO.File.ReadAllLines("../../input2.txt");
 
             int ipReg = -1;
             var program = new List<Instruction>();
@@ -178,7 +206,7 @@ namespace Advent2018_common
             {
                 var instr = program[registers[ipReg]];
                 registers = instr.Execute(registers);
-                registers[ipReg]++;
+                 registers[ipReg]++;
                 if (i++ % 10000000 == 0 || i < 10) Console.WriteLine($"Registers: {String.Join(" ", registers)}");
             }
             Console.WriteLine($"Registers at end: {String.Join(" ", registers)}");
