@@ -44,6 +44,7 @@
     <None Include="test4.txt" />
     <None Include="test5.txt" />
     <None Include="opCodes.txt" />
+    <None Include="input2.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="test2.txt" />
