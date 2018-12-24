@@ -116,7 +116,9 @@ namespace Advent2018_common
             var estimateA = a.cost + Math.Abs(cave.target.X - a.pos.X) + Math.Abs(cave.target.Y - a.pos.Y);
             var estimateB = b.cost + Math.Abs(cave.target.X - b.pos.X) + Math.Abs(cave.target.Y - b.pos.Y);
             if (estimateA.CompareTo(estimateB) != 0) return estimateA.CompareTo(estimateB);
-            return string.Compare(a.ToString(), b.ToString(), StringComparison.Ordinal);
+            if (a.pos.CompareTo(b.pos) != 0) return a.pos.CompareTo(b.pos);
+            return a.equiped.CompareTo(b.equiped);
+//            return string.Compare(a.ToString(), b.ToString(), StringComparison.Ordinal);
         }
     }
     class MainClass
