@@ -94,12 +94,14 @@ namespace Advent2018_common
                     break;
             }
         }
+        static HashSet<int> r3Values = new HashSet<int>();
+        static int previousValue = 0;
 
         public int[] Execute(int[] inputRegisters)
         {
             //var result = new Dictionary<int, int>(inputRegisters);
             var result = inputRegisters;
-            Console.Write($"{opCode} {inputA} {inputB} {output} {comment} [{String.Join(" ", inputRegisters)}]");
+           // Console.Write($"{opCode} {inputA} {inputB} {output} {comment} [{String.Join(" ", inputRegisters)}]");
             switch (opCode)
             {
                 case InstructionSet.addr:
@@ -151,9 +153,19 @@ namespace Advent2018_common
                     result[output] = inputRegisters[inputA] == inputRegisters[inputB] ? 1 : 0;
                     break;
                 case InstructionSet.nop:
+                    if (r3Values.Count %1000 == 0) Console.WriteLine($"{opCode} {inputA} {inputB} {output} {comment} [{String.Join(" ", result)}] {r3Values.Count()}");
+                    if (r3Values.Contains(result[3]))
+                    {
+                        Console.WriteLine($"Duplicate value {result[3]} [{String.Join(" ", result)}] {previousValue}");
+                    }
+                    else
+                    {
+                        r3Values.Add(result[3]);
+                    }
+                    previousValue = result[3];
                     break;
             }
-            Console.WriteLine($"[{String.Join(" ", result)}]");
+            //Console.WriteLine($"[{String.Join(" ", result)}]");
             return result;
         }
     }
@@ -161,26 +173,26 @@ namespace Advent2018_common
 
     class MainClass
     {
-        public static int SumFactors(int x)
+        public static Int64 StepsUntilHalt(List<Instruction> program, int ipReg, int r0)
         {
-            int result = 0;
-            for (int r3=1; r3<=x; r3++)
-            {
-                if (x % r3 ==0)
-                {
-                    result += r3;
-                }
-            }
-            return result;
-        }
+            int[] registers = new int[6];
+            registers[0] = r0;
 
+            Int64 i = 0;
+            while (registers[ipReg] >= 0 && registers[ipReg] < program.Count)
+            {
+                var instr = program[registers[ipReg]];
+                registers = instr.Execute(registers);
+                registers[ipReg]++;
+                i++;
+//                if (i % 10000000 == 0 || i < 10) Console.WriteLine($"Registers: {String.Join(" ", registers)}");
+            }
+            Console.WriteLine($"Registers: {String.Join(" ", registers)}");
+            return i;
+        }
         public static void Main(string[] args)
         {
-
-            Console.WriteLine($"Sum of factors for 915: {SumFactors(915)}");
-            Console.WriteLine($"Sum of factors for 10551315: {SumFactors(10551315)}");
-
-            string[] input = System.IO.File.ReadAllLines("../../input2.txt");
+            string[] input = System.IO.File.ReadAllLines("../../input.txt");
 
             int ipReg = -1;
             var program = new List<Instruction>();
@@ -198,18 +210,15 @@ namespace Advent2018_common
                 }
             }
 
-            int[] registers = new int[6];
-            registers[0] = 1;
+            // Shortest
+            var steps = StepsUntilHalt(program, ipReg, 7967233);
+            Console.WriteLine($"{7967233}: {steps}");
 
-            Int64 i = 0;
-            while (registers[ipReg] >= 0 && registers[ipReg] < program.Count)
-            {
-                var instr = program[registers[ipReg]];
-                registers = instr.Execute(registers);
-                 registers[ipReg]++;
-                if (i++ % 10000000 == 0 || i < 10) Console.WriteLine($"Registers: {String.Join(" ", registers)}");
-            }
-            Console.WriteLine($"Registers at end: {String.Join(" ", registers)}");
+            // Longest
+            steps = StepsUntilHalt(program, ipReg, 16477902);
+            Console.WriteLine($"{16477902}: {steps}");
+
+
             Console.ReadKey();
         }
     }
