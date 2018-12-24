@@ -7,216 +7,203 @@ using System.Text;
 
 namespace Advent2018_common
 {
-    struct Instruction
+    class Cave
     {
-        public enum InstructionSet { eqri, bori, addi, bani, seti, eqrr, addr, gtri, borr, gtir, setr, eqir, mulr, muli, gtrr, banr, nop };
-        InstructionSet opCode;
-        int inputA;
-        int inputB;
-        int output;
-        string comment;
+        Dictionary<(int, int), int> erosionLevel = new Dictionary<(int, int), int>();
+        int depth;
+        public (int X, int Y) target;
 
-        public Instruction(InstructionSet Opcode, int A, int B, int Out)
+        public Cave(int depth, (int X, int Y) target)
         {
-            opCode = Opcode;
-            inputA = A;
-            inputB = B;
-            output = Out;
-            comment = "";
+            this.depth = depth;
+            this.target = target;
         }
-        public Instruction(string instruction)
+
+        public int ErosionLevel((int X, int Y) coord)
         {
-            string [] args = instruction.Split(" ".ToCharArray(),  StringSplitOptions.RemoveEmptyEntries);
-            inputA = Convert.ToInt32(args[1]);
-            inputB = Convert.ToInt32(args[2]);
-            output = Convert.ToInt32(args[3]);
-            if (args.Length >4)
+            if (!erosionLevel.ContainsKey(coord))
             {
-                comment = String.Join(" ", args.Skip(4));
-            }
-            else
-            {
-                comment = "";
-            }
-
-            switch (args[0])
-            {
-                case "addr":
-                    opCode = InstructionSet.addr;
-                    break;
-                case "addi":
-                    opCode = InstructionSet.addi;
-                    break;
-                case "mulr":
-                    opCode = InstructionSet.mulr;
-                    break;
-                case "muli":
-                    opCode = InstructionSet.muli;
-                    break;
-                case "banr":
-                    opCode = InstructionSet.banr;
-                    break;
-                case "bani":
-                    opCode = InstructionSet.bani;
-                    break;
-                case "borr":
-                    opCode = InstructionSet.borr;
-                    break;
-                case "bori":
-                    opCode = InstructionSet.bori;
-                    break;
-                case "setr":
-                    opCode = InstructionSet.setr;
-                    break;
-                case "seti":
-                    opCode = InstructionSet.seti;
-                    break;
-                case "gtir":
-                    opCode = InstructionSet.gtir;
-                    break;
-                case "gtri":
-                    opCode = InstructionSet.gtri;
-                    break;
-                case "gtrr":
-                    opCode = InstructionSet.gtrr;
-                    break;
-                case "eqir":
-                    opCode = InstructionSet.eqir;
-                    break;
-                case "eqri":
-                    opCode = InstructionSet.eqri;
-                    break;
-                case "eqrr":
-                    opCode = InstructionSet.eqrr;
-                    break;
-                default:
-                    opCode = InstructionSet.nop;
-                    break;
-            }
-        }
-        static HashSet<int> r3Values = new HashSet<int>();
-        static int previousValue = 0;
-
-        public int[] Execute(int[] inputRegisters)
-        {
-            //var result = new Dictionary<int, int>(inputRegisters);
-            var result = inputRegisters;
-           // Console.Write($"{opCode} {inputA} {inputB} {output} {comment} [{String.Join(" ", inputRegisters)}]");
-            switch (opCode)
-            {
-                case InstructionSet.addr:
-                    result[output] = inputRegisters[inputA] + inputRegisters[inputB];
-                    break;
-                case InstructionSet.addi:
-                    result[output] = inputRegisters[inputA] + inputB;
-                    break;
-                case InstructionSet.mulr:
-                    result[output] = inputRegisters[inputA] * inputRegisters[inputB];
-                    break;
-                case InstructionSet.muli:
-                    result[output] = inputRegisters[inputA] * inputB;
-                    break;
-                case InstructionSet.banr:
-                    result[output] = inputRegisters[inputA] & inputRegisters[inputB];
-                    break;
-                case InstructionSet.bani:
-                    result[output] = inputRegisters[inputA] & inputB;
-                    break;
-                case InstructionSet.borr:
-                    result[output] = inputRegisters[inputA] | inputRegisters[inputB];
-                    break;
-                case InstructionSet.bori:
-                    result[output] = inputRegisters[inputA] | inputB;
-                    break;
-                case InstructionSet.setr:
-                    result[output] = inputRegisters[inputA];
-                    break;
-                case InstructionSet.seti:
-                    result[output] = inputA;
-                    break;
-                case InstructionSet.gtir:
-                    result[output] = inputA > inputRegisters[inputB] ? 1 : 0;
-                    break;
-                case InstructionSet.gtri:
-                    result[output] = inputRegisters[inputA] > inputB ? 1 : 0;
-                    break;
-                case InstructionSet.gtrr:
-                    result[output] = inputRegisters[inputA] > inputRegisters[inputB] ? 1 : 0;
-                    break;
-                case InstructionSet.eqir:
-                    result[output] = inputA == inputRegisters[inputB] ? 1 : 0;
-                    break;
-                case InstructionSet.eqri:
-                    result[output] = inputRegisters[inputA] == inputB ? 1 : 0;
-                    break;
-                case InstructionSet.eqrr:
-                    result[output] = inputRegisters[inputA] == inputRegisters[inputB] ? 1 : 0;
-                    break;
-                case InstructionSet.nop:
-                    if (r3Values.Count %1000 == 0) Console.WriteLine($"{opCode} {inputA} {inputB} {output} {comment} [{String.Join(" ", result)}] {r3Values.Count()}");
-                    if (r3Values.Contains(result[3]))
-                    {
-                        Console.WriteLine($"Duplicate value {result[3]} [{String.Join(" ", result)}] {previousValue}");
-                    }
-                    else
-                    {
-                        r3Values.Add(result[3]);
-                    }
-                    previousValue = result[3];
-                    break;
-            }
-            //Console.WriteLine($"[{String.Join(" ", result)}]");
-            return result;
-        }
-    }
-
-
-    class MainClass
-    {
-        public static Int64 StepsUntilHalt(List<Instruction> program, int ipReg, int r0)
-        {
-            int[] registers = new int[6];
-            registers[0] = r0;
-
-            Int64 i = 0;
-            while (registers[ipReg] >= 0 && registers[ipReg] < program.Count)
-            {
-                var instr = program[registers[ipReg]];
-                registers = instr.Execute(registers);
-                registers[ipReg]++;
-                i++;
-//                if (i % 10000000 == 0 || i < 10) Console.WriteLine($"Registers: {String.Join(" ", registers)}");
-            }
-            Console.WriteLine($"Registers: {String.Join(" ", registers)}");
-            return i;
-        }
-        public static void Main(string[] args)
-        {
-            string[] input = System.IO.File.ReadAllLines("../../input.txt");
-
-            int ipReg = -1;
-            var program = new List<Instruction>();
-
-            foreach (var line in input)
-            {
-                if (line.StartsWith("#ip"))
+                if (coord == target)
                 {
-                    ipReg = Convert.ToInt32(line.Split(' ')[1]);
+                    erosionLevel[coord] = 0 + depth;
+                }
+                else if (coord.Y == 0)
+                {
+                    erosionLevel[coord] = (coord.X * 16807 + depth) % 20183;
+                }
+                else if (coord.X == 0)
+                {
+                    erosionLevel[coord] = (coord.Y * 48271 + depth) % 20183;
                 }
                 else
                 {
-                    var instr = new Instruction(line);
-                    program.Add(instr);
+                    erosionLevel[coord] = (ErosionLevel((coord.X - 1, coord.Y)) * ErosionLevel((coord.X, coord.Y - 1)) + depth) % 20183;
                 }
             }
+            return erosionLevel[coord];
+        }
+        public List<CavePosition> PossibleMoves(CavePosition cpos)
+        {
+            var result = new List<CavePosition>();
 
-            // Shortest
-            var steps = StepsUntilHalt(program, ipReg, 7967233);
-            Console.WriteLine($"{7967233}: {steps}");
+            if (cpos.pos.X > 0) result.Add(new CavePosition(cpos.pos.X - 1, cpos.pos.Y, cpos.equiped, cpos));
+            if (cpos.pos.Y > 0) result.Add(new CavePosition(cpos.pos.X, cpos.pos.Y - 1, cpos.equiped, cpos));
+            result.Add(new CavePosition(cpos.pos.X + 1, cpos.pos.Y, cpos.equiped, cpos));
+            result.Add(new CavePosition(cpos.pos.X, cpos.pos.Y + 1, cpos.equiped, cpos));
+            if (cpos.equiped != Tool.climbing) result.Add(new CavePosition(cpos.pos.X, cpos.pos.Y, Tool.climbing, cpos));
+            if (cpos.equiped != Tool.torch) result.Add(new CavePosition(cpos.pos.X, cpos.pos.Y, Tool.torch, cpos));
+            if (cpos.equiped != Tool.neither) result.Add(new CavePosition(cpos.pos.X, cpos.pos.Y, Tool.neither, cpos));
 
-            // Longest
-            steps = StepsUntilHalt(program, ipReg, 16477902);
-            Console.WriteLine($"{16477902}: {steps}");
+            var toReturn = result.Where(cp => cp.CompatibleTool(this)).ToList();
+            //Console.WriteLine($"From position {cpos}, the possible moves are: {string.Join(";", toReturn)}");
+            return toReturn;
+        }
+    }
+    public enum Tool { climbing, torch, neither };
+    struct CavePosition
+    {
+        public (int X, int Y) pos;
+        public Tool equiped;
+        public int cost;
+        public List<string> path;   // CavePosition.ToString() list
+
+        public CavePosition(int X, int Y, Tool tool, CavePosition? previous = null)
+        {
+            pos.X = X;
+            pos.Y = Y;
+            equiped = tool;
+            if (previous == null) path = new List<string>();
+            else
+            {
+                path = new List<string>(previous.Value.path)
+                {
+                    $"{pos.X},{pos.Y}:{equiped}"
+                };
+            }
+            if (previous == null) cost = 0;
+            else cost = previous.Value.cost + (previous.Value.equiped == tool ? 1 : 7);
+        }
+
+        public bool CompatibleTool(Cave cave)
+        {
+            var terrainType = cave.ErosionLevel(pos) % 3;
+            switch (terrainType)
+            {
+                case 0:
+                    return equiped == Tool.climbing || equiped == Tool.torch;
+                case 1:
+                    return equiped == Tool.climbing || equiped == Tool.neither;
+                case 2:
+                    return equiped == Tool.torch || equiped == Tool.neither;
+            }
+            return false;
+        }
+        public override string ToString()
+        {
+            return $"{pos.X},{pos.Y}:{equiped}";
+        }
+    }
+    class AStarSorting : IComparer<CavePosition>
+    {
+        public Cave cave;
+
+        public AStarSorting(Cave cave)
+        {
+            this.cave = cave;
+        }
+        public int Compare(CavePosition a, CavePosition b)
+        {
+            var estimateA = a.cost + Math.Abs(cave.target.X - a.pos.X) + Math.Abs(cave.target.Y - a.pos.Y);
+            var estimateB = b.cost + Math.Abs(cave.target.X - b.pos.X) + Math.Abs(cave.target.Y - b.pos.Y);
+            if (estimateA.CompareTo(estimateB) != 0) return estimateA.CompareTo(estimateB);
+            return string.Compare(a.ToString(), b.ToString(), StringComparison.Ordinal);
+        }
+    }
+    class MainClass
+    {
+        public static int ShortestPath(Cave cave)
+        {
+            var positionsToCheck = new SortedSet<CavePosition>(new AStarSorting(cave));
+
+            var startPosition = new CavePosition(0, 0, Tool.torch);
+            var checkedPositions = new HashSet<string>();       // CavePosition.ToString()
+            checkedPositions.Add(startPosition.ToString());
+
+            positionsToCheck.UnionWith(cave.PossibleMoves(startPosition));
+
+            while (positionsToCheck.Any())
+            {
+                var checkPosition = positionsToCheck.First();
+                positionsToCheck.Remove(checkPosition);
+                checkedPositions.Add(checkPosition.ToString());
+
+                if (checkPosition.pos == cave.target && checkPosition.equiped == Tool.torch)
+                {
+                    Console.WriteLine($"Found him at {checkPosition.pos} after {checkPosition.cost} minutes");
+                    Console.WriteLine($"Path: {String.Join(";", checkPosition.path)}");
+                    return checkPosition.cost;
+                }
+                var newPositions = cave.PossibleMoves(checkPosition)
+                                       .Where(cp => !checkedPositions.Contains(cp.ToString())).ToList();
+                //foreach (var cp in newPositions)
+                //{
+                //    var adding = positionsToCheck.Add(cp);
+                //    if (adding) Console.WriteLine($"Added: {cp}");
+                //    else Console.WriteLine($"Didn't add {cp}");
+                //}
+                positionsToCheck.UnionWith(newPositions);
+             }
+            return 0; // Didn't find a path...
+        }
+
+        public static void Main(string[] args)
+        {
+            // string[] input = System.IO.File.ReadAllLines("../../input.txt");
+            int depth;
+            (int X, int Y) target;
+
+            // Puzzle
+            depth = 3066;
+            target = (13, 726);
+            //depth = 510;
+            //target = (10, 10);
+            var typeMarker = ".=|";
+
+            var cave = new Cave(depth, target);
+
+            for (int y = 0; y < 16; y++)
+            {
+                for (int x = 0; x < 16; x++)
+                {
+                    if ((x, y) == target)
+                    {
+                        Console.Write("T");
+                    }
+                    else if ((x, y) == (0, 0))
+                    {
+                        Console.Write("M");
+                    }
+                    else
+                    {
+                        var erosion = (cave.ErosionLevel((x, y)));
+                        Console.Write(typeMarker[erosion % 3]);
+                    }
+                }
+                Console.WriteLine();
+            }
+
+            int risklevel = 0;
+            for (int y = 0; y <= target.Y; y++)
+            {
+                for (int x = 0; x <= target.X; x++)
+                {
+                    risklevel += cave.ErosionLevel((x, y)) % 3;
+                }
+            }
+            Console.WriteLine($"Total risk level: {risklevel}");
+
+            // Find the shortest path
+            Console.WriteLine($"Finding shortest path: {ShortestPath(cave)}");
 
 
             Console.ReadKey();
