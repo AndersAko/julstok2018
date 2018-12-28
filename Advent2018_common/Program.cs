@@ -7,274 +7,196 @@ using System.Text;
 
 namespace Advent2018_common
 {
-    public class ArmyGroup
+    enum SoilType { sand, moist, drop, water, clay };
+    // TODO: Replace with extension to ValueTuple to support addition...
+    struct Drop
     {
-        public int Number;
-        public int HitPoints;
-        public int AttackDamage;
-        public string AttackType;
-        public int Initiative;
-        public bool Selected = false;
-
-        public List<string> Weaknesses = new List<string>();
-        public List<string> Immunities = new List<string>();
-
-        public ArmyGroup Target = null;
-        public virtual Int64 Power
+        public int X;
+        public int Y;
+        Drop((int X, int Y) from)
         {
-            get
-            {
-                return Number * AttackDamage;
-            }
+            this.X = from.X;
+            this.Y = from.Y;
         }
-        public ArmyGroup(int num, int hp, int dmg, string type, int initiative, string weaknesses)
+        public static Drop operator +(Drop a, (int X, int Y) b)
         {
-            Number = num;
-            HitPoints = hp;
-            AttackDamage = dmg;
-            AttackType = type;
-            Initiative = initiative;
-
-            foreach (var weakness in weaknesses.TrimStart("( ".ToCharArray()).Split(";".ToCharArray(), StringSplitOptions.RemoveEmptyEntries))
-            {
-                var weakTypes = weakness.Split(" ,)".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-
-                if (weakTypes[0] == "immune")
-                {
-                    for (int i = 2; i < weakTypes.Count(); i++)
-                    {
-                        Immunities.Add(weakTypes[i]);
-                    }
-                }
-                else if (weakTypes[0] == "weak")
-                {
-                    for (int i = 2; i < weakTypes.Count(); i++)
-                    {
-                        Weaknesses.Add(weakTypes[i]);
-                    }
-                }
-            }
+            return new Drop((a.X + b.X, a.Y + b.Y));
         }
-        public ArmyGroup(ArmyGroup fromCopy)
+        public static implicit operator ValueTuple<int, int>(Drop drop)
         {
-            Number = fromCopy.Number;
-            HitPoints = fromCopy.HitPoints;
-            AttackDamage = fromCopy.AttackDamage;
-            AttackType = fromCopy.AttackType;
-            Initiative = fromCopy.Initiative;
-            Weaknesses = new List<string>(fromCopy.Weaknesses);
-            Immunities = new List<string>(fromCopy.Immunities);
+            return (drop.X, drop.Y);
         }
-        public ArmyGroup Clone()
+        public static implicit operator Drop(ValueTuple<int, int> tuple)
         {
-            return (ArmyGroup)this.MemberwiseClone();
-        }
-        // Amount of damage dealt to target
-        public virtual Int64 Damage(ArmyGroup target)
-        {
-            if (target.Immunities.Contains(AttackType)) return 0;
-            if (target.Weaknesses.Contains(AttackType)) return Power * 2;
-            else return Power;
+            return new Drop(tuple);
         }
         public override string ToString()
         {
-            return $"{Number} {HitPoints}hp Attack:{AttackDamage} {AttackType} Initiative:{Initiative} Weakness:{String.Join(",", Weaknesses)} Immune:{String.Join(",", Immunities)}";
+            return $"({X},{Y})";
         }
     }
-    public class ImmuneSystem : ArmyGroup
+
+
+    class BelowGround
     {
-        public ImmuneSystem(int num, int hp, int dmg, string type, int initiative, string weaknesses) : base(num, hp, dmg, type, initiative, weaknesses)
-        {
+        Dictionary<(int X, int Y), SoilType> ground = new Dictionary<(int X, int Y), SoilType>();
+        readonly int MinY;
+        readonly int MaxY;
+        int MinX { get { return ground.Min(s => s.Key.X); } }
+        int MaxX { get { return ground.Max(s => s.Key.X); } }
 
-        }
-        public ImmuneSystem(ImmuneSystem immune) : base(immune) { }
-
-        public override Int64 Damage(ArmyGroup target)
-        {
-            if (target.Immunities.Contains(AttackType)) return 0;
-            if (target.Weaknesses.Contains(AttackType)) return Power * 2;
-            else return Power;
-        }
-        public override Int64 Power
+        public SoilType this[(int X, int Y) ix]
         {
             get
             {
-                return Number * (AttackDamage + MainClass.Boost);
+                if (ground.ContainsKey(ix)) return ground[ix];
+                return SoilType.sand;
+            }
+            set
+            {
+                ground[ix] = value;
+            }
+        }
+        public BelowGround(string[] input)
+        {
+            foreach (var line in input)
+            {
+                var split = line.Split(",= .".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+                if (split[0] == "x")
+                {
+                    var x = Convert.ToInt32(split[1]);
+                    for (int y = Convert.ToInt32(split[3]); y <= Convert.ToInt32(split[4]); y++)
+                    {
+                        ground[(x, y)] = SoilType.clay;
+                    }
+                }
+                else if (split[0] == "y")
+                {
+                    var y = Convert.ToInt32(split[1]);
+                    for (int x = Convert.ToInt32(split[3]); x <= Convert.ToInt32(split[4]); x++)
+                    {
+                        ground[(x, y)] = SoilType.clay;
+                    }
+                }
+            }
+            MaxY = ground.Max(s => s.Key.Y);
+            MinY = ground.Min(s => s.Key.Y);
+        }
+        public int WetSquares()
+        {
+            return ground.Count(s => s.Key.Y >= MinY && s.Key.Y <= MaxY && (s.Value == SoilType.moist || s.Value == SoilType.water));
+        }
+        public void PrintGround()
+        {
+            var minX = MinX;
+            var maxX = MaxX;
+
+            string symbol = ".|d~#";
+            for (var xrow = 100; xrow >= 1; xrow /= 10)
+            {
+                Console.Write($"    ");
+                for (int x = minX - 5; x < maxX + 5; x++)
+                {
+                    Console.Write((x / xrow) % 10);
+                }
+                Console.WriteLine();
+            }
+            for (int y = MinY; y <= MaxY; y++)
+            {
+                Console.Write($"{y,3} ");
+                for (int x = minX - 5; x < maxX + 5; x++)
+                {
+                    SoilType square = this[(x,y)];
+                    Console.Write(symbol[(int)square]);
+                }
+                Console.WriteLine();
+            }
+        }
+        // Add a splash of water, falling down until it settles
+        public bool SplashWater((int X, int Y) spring)
+        {
+            Console.WriteLine($"Splash at {spring}");
+            Drop drop = spring;
+            while (true)
+            {
+                if (drop.Y > MaxY)
+                {
+                    return false;
+                }
+                else if (this[drop + (0, 1)] != SoilType.clay && this[drop + (0, 1)] != SoilType.water)
+                {
+                    ground[drop] = SoilType.moist;
+                    drop += (0, 1);
+                }
+                else
+                {
+                    // Expand to left and right until it hits a wall or loses support from clay or water 
+                    Drop leftLimit = drop;
+                    for (int dx = -1; this[drop + (dx, 0)] != SoilType.clay &&
+                                    (this[drop + (dx, 1)] == SoilType.clay || this[drop + (dx, 1)] == SoilType.water); dx--)
+                    {
+                        if (this[drop + (dx, 0)] != SoilType.sand && this[drop + (dx, 0)] != SoilType.moist)
+                        {
+                            Console.WriteLine($"Surprise: square at {drop + (dx, 0)} was {this[drop + (dx, 0)]}");
+                        }
+                        this[drop + (dx, 0)] = SoilType.moist;
+                        leftLimit = drop + (dx, 0);
+                    }
+                    Drop rightLimit = drop;
+                    for (int dx = 1; this[drop + (dx, 0)] != SoilType.clay &&
+                                    (this[drop + (dx, 1)] == SoilType.clay || this[drop + (dx, 1)] == SoilType.water); dx++)
+                    {
+                        if (this[drop + (dx, 0)] != SoilType.sand && this[drop + (dx, 0)] != SoilType.moist)
+                        {
+                            Console.WriteLine($"Surprise: square at {drop + (dx, 0)} was {this[drop + (dx, 0)]}");
+                        }
+                        this[drop + (dx, 0)] = SoilType.moist;
+                        rightLimit = drop + (dx, 0);
+                    }
+                    if (this[leftLimit + (-1, 0)] == SoilType.clay && this[rightLimit + (1, 0)] == SoilType.clay)
+                    {
+                        // Walls on either side, fill with water and return
+                        for (int x = leftLimit.X; x <= rightLimit.X; x++)
+                        {
+                            this[(x, drop.Y)] = SoilType.water;
+                        }
+                        return true;
+                    }
+                    // Overflows on either or both sides
+                    bool overflowSettles = false;
+                    if (this[leftLimit + (-1, 0)] != SoilType.clay)
+                    {
+                        this[leftLimit + (-1, 0)] = SoilType.moist;
+                        overflowSettles |= SplashWater(leftLimit + (-1, 0));
+                    }
+                    if (this[rightLimit + (1, 0)] != SoilType.clay)
+                    {
+                        this[rightLimit + (1, 0)] = SoilType.moist;
+                        overflowSettles |= SplashWater(rightLimit + (1, 0));
+                    }
+                    return overflowSettles;
+                }
             }
         }
     }
-    public class Infection : ArmyGroup
-    {
-        public Infection(int num, int hp, int dmg, string type, int initiative, string weaknesses) : base(num, hp, dmg, type, initiative, weaknesses)
-        {
-
-        }
-        public Infection(Infection infection) : base(infection) { }
-    }
-    public struct BoostLevel
-    {
-        public int level;
-        public bool highEnough;
-        public BoostLevel(int l, bool e)
-        {
-            level = l;
-            highEnough = e;
-        }
-    }
-
-    /*
-     * Immune System:
-       17 units each with 5390 hit points (weak to radiation, bludgeoning) with an attack that does 4507 fire damage at initiative 2
-       989 units each with 1274 hit points (immune to fire; weak to bludgeoning, slashing) with an attack that does 25 slashing damage at initiative 3
-
-       Infection:
-       801 units each with 4706 hit points (weak to radiation) with an attack that does 116 bludgeoning damage at initiative 1
-       4485 units each with 2961 hit points (immune to radiation; weak to fire, cold) with an attack that does 12 slashing damage at initiative 4
-    */
-
-
     class MainClass
     {
-        //static Regex groupDescriptionRx = new Regex(@"(?<num>\d+) units each with (?<hp>\d+) hit points (?<weakness>\((immune|weak) to[ ;,\w]+\))? with an attack that does (?<dmg>\d+) (?<type>\w) damage at initiative (?<init>\d+)");
-        static Regex groupDescriptionRx = new Regex(@"(?<num>\d+) units each with (?<hp>\d+) hit points(?<weakness> \((immune|weak) to[ ;,\w]+\))? with an attack that does (?<dmg>\d+) (?<type>\w*) damage at initiative (?<init>\d+)");
-        public static int Boost = 0;
-
         public static void Main(string[] args)
         {
             string[] input = System.IO.File.ReadAllLines("../../input.txt");
 
-            bool infection = false;
-            var OriginalReindeerSystem = new List<ArmyGroup>();
-
-            foreach (var line in input)
+            var ground = new BelowGround(input);
+            ground.PrintGround();
+            while (ground.SplashWater((500, 0)))
             {
-                if (line.StartsWith("Immune", StringComparison.Ordinal)) continue;
-                if (line.StartsWith("Infection", StringComparison.Ordinal))
-                {
-                    infection = true;
-                    continue;
-                }
-                Match match = groupDescriptionRx.Match(line);
-                if (!match.Success) continue;
-                ArmyGroup army;
-                if (infection) army = new Infection(Convert.ToInt32(match.Groups["num"].ToString()), Convert.ToInt32(match.Groups["hp"].ToString()), Convert.ToInt32(match.Groups["dmg"].ToString()),
-                                         match.Groups["type"].ToString(), Convert.ToInt32(match.Groups["init"].ToString()), match.Groups["weakness"].ToString());
-                else army = new ImmuneSystem(Convert.ToInt32(match.Groups["num"].ToString()), Convert.ToInt32(match.Groups["hp"].ToString()), Convert.ToInt32(match.Groups["dmg"].ToString()),
-                         match.Groups["type"].ToString(), Convert.ToInt32(match.Groups["init"].ToString()), match.Groups["weakness"].ToString());
-                OriginalReindeerSystem.Add(army);
-
-                Console.WriteLine($"Added: {army}");
+                //ground.PrintGround();
             }
-
-            List<ArmyGroup> ReindeerSystem;
-            Boost = 0;
-            ReindeerSystem = RunCombat(OriginalReindeerSystem);
-
-            BoostLevel LowBoost = new BoostLevel(0, false);
-
-            Boost = 10000;
-            ReindeerSystem = RunCombat(OriginalReindeerSystem);
-            BoostLevel HighBoost = new BoostLevel(10000, !ReindeerSystem.Any(a => a is Infection));
-
-            do
-            {
-                ReindeerSystem = new List<ArmyGroup>(OriginalReindeerSystem.Select(a => a.Clone()));
-                if (!HighBoost.highEnough)
-                {
-                    HighBoost.level += HighBoost.level - LowBoost.level;
-                    Boost = HighBoost.level;
-                    ReindeerSystem = RunCombat(ReindeerSystem);
-                    HighBoost.highEnough = !ReindeerSystem.Any(a => a is Infection);
-                }
-                else if (LowBoost.highEnough)
-                {
-                    LowBoost.level -= HighBoost.level - LowBoost.level;
-                    Boost = LowBoost.level;
-                    ReindeerSystem = RunCombat(ReindeerSystem);
-                    LowBoost.highEnough = !ReindeerSystem.Any(a => a is Infection);
-                }
-                else if (!LowBoost.highEnough && HighBoost.highEnough)
-                {
-                    Boost = HighBoost.level - (HighBoost.level - LowBoost.level) / 2;
-                    ReindeerSystem = RunCombat(ReindeerSystem);
-                    if (!ReindeerSystem.Any(a => a is Infection))
-                    {
-                        HighBoost.highEnough = true;
-                        HighBoost.level = Boost;
-                    }
-                    else
-                    {
-                        LowBoost.highEnough = false;
-                        LowBoost.level = Boost;
-                    }
-                }
-                else Console.WriteLine($"Strange: {LowBoost}, {HighBoost}");
-                Console.WriteLine($"Searching... {LowBoost.level} {LowBoost.highEnough} to {HighBoost.level} {HighBoost.highEnough}");
-            } while (HighBoost.level - LowBoost.level > 1);
-
-            Console.WriteLine($"Probably lowest boost value: {HighBoost.level}");
-            for (int i=HighBoost.level -10 ; i < HighBoost.level+5; i++)
-            {
-                Boost = i;
-                ReindeerSystem = RunCombat(OriginalReindeerSystem);
-            }
+            ground.PrintGround();
+            Console.WriteLine($"Total wet squares: {ground.WetSquares()}");
 
             Console.ReadKey();
         }
 
-        private static List<ArmyGroup> RunCombat(List<ArmyGroup> OriginalReindeerSystem)
-        {
-            var ReindeerSystem = new List<ArmyGroup>(OriginalReindeerSystem.Select(a => a.Clone()));
-            int TotalUnits = ReindeerSystem.Sum(a => a.Number);
 
-            int Round = 1;
-            while (ReindeerSystem.Any(a => a is ImmuneSystem) && ReindeerSystem.Any(a => a is Infection))
-            {
-                //Console.WriteLine($"Round {Round++}");
-                //Console.WriteLine("Immune System:");
-                //foreach (var immune in ReindeerSystem.Where(a => a is ImmuneSystem))
-                //{
-                //    Console.WriteLine($"{immune}");
-                //}
-                //Console.WriteLine("Infection:");
-                //foreach (var infections in ReindeerSystem.Where(a => a is Infection))
-                //{
-                //    Console.WriteLine($"{infections}");
-                //}
-                //Console.WriteLine();
-
-                // Target selection
-                foreach (var group in ReindeerSystem.OrderByDescending(g => g.Power).ThenByDescending(g => g.Initiative))
-                {
-                    var target = ReindeerSystem.Where(a => a.GetType() != group.GetType() && !a.Selected).OrderByDescending(a => group.Damage(a))
-                                .ThenByDescending(a => a.Power).ThenByDescending(a => a.Initiative).FirstOrDefault();
-                    if (target != null && group.Damage(target) == 0) target = null;
-                    group.Target = target;
-                    if (target != null) target.Selected = true;
-                }
-
-                // Atack phase
-                foreach (var group in ReindeerSystem.OrderByDescending(g => g.Initiative))
-                {
-                    if (group.Target != null && group.Number >0)
-                    {
-                        //Console.WriteLine($"{group} attacked {group.Target}");
-                        //Console.WriteLine($"  dealing {group.Damage(group.Target)} killing {group.Damage(group.Target) / group.Target.HitPoints} units of {group.Target.Number}.");
-                        group.Target.Number -= (int)(group.Damage(group.Target) / (long)group.Target.HitPoints);
-                    }
-                }
-
-                ReindeerSystem = ReindeerSystem.Where(a => a.Number > 0).ToList();
-                foreach (var a in ReindeerSystem)
-                {
-                    a.Selected = false;
-                }
-                if (TotalUnits == ReindeerSystem.Sum(a => a.Number)) break;
-                TotalUnits = ReindeerSystem.Sum(a => a.Number);
-            }
-            Console.WriteLine($"{Boost} - {ReindeerSystem.Count()} groups of {String.Join("; ",ReindeerSystem.GroupBy(a=>a.GetType()).Select(g => $"{g.First().GetType()} {g.Sum(a => a.Number)}"))} " +
-            	$"remain with a total of {ReindeerSystem.Sum(a => a.Number)} units");
-            return ReindeerSystem;
-        }
     }
 }
