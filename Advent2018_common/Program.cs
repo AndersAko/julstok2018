@@ -7,222 +7,112 @@ using System.Text;
 
 namespace Advent2018_common
 {
-    enum SoilType { sand, moist, drop, water, clay };
-    // TODO: Replace with extension to ValueTuple to support addition...
-    struct Drop
+    class LandScape
     {
-        public int X;
-        public int Y;
-        Drop((int X, int Y) from)
-        {
-            this.X = from.X;
-            this.Y = from.Y;
-        }
-        public static Drop operator +(Drop a, (int X, int Y) b)
-        {
-            return new Drop((a.X + b.X, a.Y + b.Y));
-        }
-        public static implicit operator ValueTuple<int, int>(Drop drop)
-        {
-            return (drop.X, drop.Y);
-        }
-        public static implicit operator Drop(ValueTuple<int, int> tuple)
-        {
-            return new Drop(tuple);
-        }
-        public override string ToString()
-        {
-            return $"({X},{Y})";
-        }
-    }
+        char[][] squares;
+        int sizeX, sizeY;
 
+        public LandScape(string[] input)
+        {
+            sizeX = input[0].Length;
+            sizeY = input.Length;
 
-    class BelowGround
-    {
-        Dictionary<(int X, int Y), SoilType> ground = new Dictionary<(int X, int Y), SoilType>();
-        readonly int MinY;
-        readonly int MaxY;
-        int MinX { get { return ground.Min(s => s.Key.X); } }
-        int MaxX { get { return ground.Max(s => s.Key.X); } }
-
-        public SoilType this[(int X, int Y) ix]
+            squares = new char[sizeY][];
+            for (int i = 0; i < input.Length; i++)
+            {
+                squares[i] = input[i].ToCharArray();
+            }
+        }
+        public LandScape(char[][] squares)
+        {
+            this.squares = squares;
+            sizeX = squares[0].Length;
+            sizeY = squares.Length;
+        }
+        public char this[(int X, int Y) ix]
         {
             get
             {
-                if (ground.ContainsKey(ix)) return ground[ix];
-                return SoilType.sand;
+                if (ix.X >= 0 && ix.X < sizeX && ix.Y >= 0 && ix.Y < sizeY) return squares[ix.Y][ix.X];
+                return ' ';
             }
             set
             {
-                ground[ix] = value;
+                squares[ix.Y][ix.X] = value;
             }
         }
-        public BelowGround(string[] input)
+        public void PrintLandscape()
         {
-            foreach (var line in input)
+            foreach (var line in squares)
             {
-                var split = line.Split(",= .".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-                if (split[0] == "x")
+                Console.WriteLine(new string(line));
+            }
+        }
+        public LandScape OneMinuteTick()
+        {
+            var nextMinute = new char[sizeY][];
+
+            for (int y = 0; y < sizeY; y++)
+            {
+                var newRow = new char[sizeX];
+                for (int x = 0; x < sizeX; x++)
                 {
-                    var x = Convert.ToInt32(split[1]);
-                    for (int y = Convert.ToInt32(split[3]); y <= Convert.ToInt32(split[4]); y++)
+                    var neighbourghs = new List<char>();
+                    for (int dx = -1; dx <= 1; dx++)
                     {
-                        ground[(x, y)] = SoilType.clay;
+                        for (int dy = -1; dy <= 1; dy++)
+                        {
+                            if (dx != 0 || dy !=0) neighbourghs.Add(this[(x + dx, y + dy)]);
+                        }
                     }
-                }
-                else if (split[0] == "y")
-                {
-                    var y = Convert.ToInt32(split[1]);
-                    for (int x = Convert.ToInt32(split[3]); x <= Convert.ToInt32(split[4]); x++)
+                    if (this[(x, y)] == '.' && neighbourghs.Count(c => c == '|') >= 3)
                     {
-                        ground[(x, y)] = SoilType.clay;
+                        newRow[x] = '|';
                     }
+                    else if (this[(x, y)] == '|' && neighbourghs.Count(c => c == '#') >= 3)
+                    {
+                        newRow[x] = '#';
+                    }
+                    else if (this[(x, y)] == '#' && (neighbourghs.Count(c => c == '#') < 1 || neighbourghs.Count(c => c == '|') < 1))
+                    {
+                        newRow[x] = '.';
+                    }
+                    else newRow[x] = this[(x, y)];
                 }
+                nextMinute[y] = newRow;
             }
-            MaxY = ground.Max(s => s.Key.Y);
-            MinY = ground.Min(s => s.Key.Y);
+            return new LandScape(nextMinute);
         }
-        public (int, int) WetSquares()
+        public int LumberYardTrees ()
         {
-            return (ground.Count(s => s.Key.Y >= MinY && s.Key.Y <= MaxY && (s.Value == SoilType.moist || s.Value == SoilType.water)),
-                    ground.Count(s => s.Key.Y >= MinY && s.Key.Y <= MaxY && s.Value == SoilType.water));
-        }
-        public void PrintGround()
-        {
-            var minX = MinX;
-            var maxX = MaxX;
-
-            string symbol = ".|d~#";
-            for (var xrow = 100; xrow >= 1; xrow /= 10)
-            {
-                Console.Write($"    ");
-                for (int x = minX - 5; x < maxX + 5; x++)
-                {
-                    Console.Write((x / xrow) % 10);
-                }
-                Console.WriteLine();
-            }
-            for (int y = MinY; y <= MaxY; y++)
-            {
-                Console.Write($"{y,3} ");
-                for (int x = minX - 5; x < maxX + 5; x++)
-                {
-                    SoilType square = this[(x, y)];
-                    Console.Write(symbol[(int)square]);
-                }
-                Console.WriteLine();
-            }
-        }
-        static HashSet<Drop> CompletedSprings = new HashSet<Drop>();
-        // Add a splash of water, falling down until it settles, repeating until full
-        public bool SplashWater(List<(int X, int Y)> springHistory)
-        {
-            Console.WriteLine($"Splash at {springHistory.Last()}");
-
-            Drop drop = springHistory.Last();
-            if (CompletedSprings.Contains(drop)) return false;      // been there, done that...
-
-            if (this[drop] == SoilType.water)
-            {
-                springHistory.RemoveAt(springHistory.Count - 1);
-                Console.WriteLine("Spring is waterlogged, back up to previous spring and try again...");
-
-                return SplashWater(springHistory);
-            }
-            this[drop] = SoilType.moist;
-
-            // Drop down until it hits clay or water
-            while (this[drop + (0, 1)] != SoilType.clay && this[drop + (0, 1)] != SoilType.water)
-            {
-                if (drop.Y > MaxY)
-                {
-                    CompletedSprings.Add(springHistory.Last());
-                    //PrintGround();
-                    return false;
-                }
-
-                drop += (0, 1);
-                this[drop] = SoilType.moist;
-            }
-
-            // Expand to left and right until it hits a wall or loses support from clay or water 
-            Drop leftLimit = drop;
-            for (int dx = -1; this[drop + (dx, 0)] != SoilType.clay &&
-                            (this[drop + (dx, 1)] == SoilType.clay || this[drop + (dx, 1)] == SoilType.water); dx--)
-            {
-                if (this[drop + (dx, 0)] != SoilType.sand && this[drop + (dx, 0)] != SoilType.moist)
-                {
-                    Console.WriteLine($"Surprise: square at {drop + (dx, 0)} was {this[drop + (dx, 0)]}");
-                }
-                this[drop + (dx, 0)] = SoilType.moist;
-                leftLimit = drop + (dx, 0);
-            }
-            Drop rightLimit = drop;
-            for (int dx = 1; this[drop + (dx, 0)] != SoilType.clay &&
-                            (this[drop + (dx, 1)] == SoilType.clay || this[drop + (dx, 1)] == SoilType.water); dx++)
-            {
-                if (this[drop + (dx, 0)] != SoilType.sand && this[drop + (dx, 0)] != SoilType.moist)
-                {
-                    Console.WriteLine($"Surprise: square at {drop + (dx, 0)} was {this[drop + (dx, 0)]}");
-                }
-                this[drop + (dx, 0)] = SoilType.moist;
-                rightLimit = drop + (dx, 0);
-            }
-            if (this[leftLimit + (-1, 0)] == SoilType.clay && this[rightLimit + (1, 0)] == SoilType.clay)
-            {
-                // Walls on either side, fill with water and return
-                for (int x = leftLimit.X; x <= rightLimit.X; x++)
-                {
-                    this[(x, drop.Y)] = SoilType.water;
-                }
-                return SplashWater(springHistory);
-            }
-            // Overflows on either or both sides
-            bool SettlesAfterOverflow = false;
-            if (this[leftLimit + (-1, 0)] != SoilType.clay)
-            {
-                var newSpring = new List<(int X, int Y)>(springHistory);
-                newSpring.Add(leftLimit + (-1, 0));
-
-                if (SplashWater(newSpring))
-                {
-                    SettlesAfterOverflow = true;
-                }
-                else
-                {
-                    CompletedSprings.Add(springHistory.Last());
-                }
-            }
-            if (this[rightLimit + (1, 0)] != SoilType.clay)
-            {
-                var newSpring = new List<(int X, int Y)>(springHistory);
-                newSpring.Add(rightLimit + (1, 0));
-                if (SplashWater(newSpring))
-                {
-                    SettlesAfterOverflow = true;
-                }
-                else
-                {
-                    CompletedSprings.Add(springHistory.Last());
-                }
-            }
-            return SettlesAfterOverflow;
+            var numLumberyards = squares.SelectMany(r => r).Count(c => c == '#');
+            var numTrees = squares.SelectMany(r => r).Count(c => c == '|');
+            return numLumberyards * numTrees;
         }
     }
+
+
     class MainClass
     {
         public static void Main(string[] args)
         {
             string[] input = System.IO.File.ReadAllLines("../../input.txt");
 
-            var ground = new BelowGround(input);
-            ground.PrintGround();
+            var landscape = new LandScape(input);
+            landscape.PrintLandscape();
 
-            List<(int X, int Y)> Springs = new List<(int X, int Y)> { (500, 0) };
-            ground.SplashWater(Springs);
+            var sustainedResources = new int[28];
 
-            ground.PrintGround();
-            Console.WriteLine($"Total wet squares: {ground.WetSquares()}");
+            for (Int64 i=1; i <= 4000; i++)
+            {
+                landscape = landscape.OneMinuteTick();
+                var resourceValue = landscape.LumberYardTrees();
+                Console.WriteLine($"After {i} minute(s): {resourceValue} {sustainedResources[i % 28]} {resourceValue == sustainedResources[i % 28]}");
+                sustainedResources[i % 28] = resourceValue;
+            }
+            landscape.PrintLandscape();
+
+            Console.WriteLine($"1000000000 mod 28 = {1000000000 % 28 } => Resource value = {sustainedResources[1000000000 % 28]}");
 
             Console.ReadKey();
         }
