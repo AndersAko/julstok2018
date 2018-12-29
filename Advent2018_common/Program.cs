@@ -82,9 +82,10 @@ namespace Advent2018_common
             MaxY = ground.Max(s => s.Key.Y);
             MinY = ground.Min(s => s.Key.Y);
         }
-        public int WetSquares()
+        public (int, int) WetSquares()
         {
-            return ground.Count(s => s.Key.Y >= MinY && s.Key.Y <= MaxY && (s.Value == SoilType.moist || s.Value == SoilType.water));
+            return (ground.Count(s => s.Key.Y >= MinY && s.Key.Y <= MaxY && (s.Value == SoilType.moist || s.Value == SoilType.water)),
+                    ground.Count(s => s.Key.Y >= MinY && s.Key.Y <= MaxY && s.Value == SoilType.water));
         }
         public void PrintGround()
         {
@@ -106,77 +107,106 @@ namespace Advent2018_common
                 Console.Write($"{y,3} ");
                 for (int x = minX - 5; x < maxX + 5; x++)
                 {
-                    SoilType square = this[(x,y)];
+                    SoilType square = this[(x, y)];
                     Console.Write(symbol[(int)square]);
                 }
                 Console.WriteLine();
             }
         }
-        // Add a splash of water, falling down until it settles
-        public bool SplashWater((int X, int Y) spring)
+        static HashSet<Drop> CompletedSprings = new HashSet<Drop>();
+        // Add a splash of water, falling down until it settles, repeating until full
+        public bool SplashWater(List<(int X, int Y)> springHistory)
         {
-            Console.WriteLine($"Splash at {spring}");
-            Drop drop = spring;
-            while (true)
+            Console.WriteLine($"Splash at {springHistory.Last()}");
+
+            Drop drop = springHistory.Last();
+            if (CompletedSprings.Contains(drop)) return false;      // been there, done that...
+
+            if (this[drop] == SoilType.water)
+            {
+                springHistory.RemoveAt(springHistory.Count - 1);
+                Console.WriteLine("Spring is waterlogged, back up to previous spring and try again...");
+
+                return SplashWater(springHistory);
+            }
+            this[drop] = SoilType.moist;
+
+            // Drop down until it hits clay or water
+            while (this[drop + (0, 1)] != SoilType.clay && this[drop + (0, 1)] != SoilType.water)
             {
                 if (drop.Y > MaxY)
                 {
+                    CompletedSprings.Add(springHistory.Last());
+                    //PrintGround();
                     return false;
                 }
-                else if (this[drop + (0, 1)] != SoilType.clay && this[drop + (0, 1)] != SoilType.water)
+
+                drop += (0, 1);
+                this[drop] = SoilType.moist;
+            }
+
+            // Expand to left and right until it hits a wall or loses support from clay or water 
+            Drop leftLimit = drop;
+            for (int dx = -1; this[drop + (dx, 0)] != SoilType.clay &&
+                            (this[drop + (dx, 1)] == SoilType.clay || this[drop + (dx, 1)] == SoilType.water); dx--)
+            {
+                if (this[drop + (dx, 0)] != SoilType.sand && this[drop + (dx, 0)] != SoilType.moist)
                 {
-                    ground[drop] = SoilType.moist;
-                    drop += (0, 1);
+                    Console.WriteLine($"Surprise: square at {drop + (dx, 0)} was {this[drop + (dx, 0)]}");
+                }
+                this[drop + (dx, 0)] = SoilType.moist;
+                leftLimit = drop + (dx, 0);
+            }
+            Drop rightLimit = drop;
+            for (int dx = 1; this[drop + (dx, 0)] != SoilType.clay &&
+                            (this[drop + (dx, 1)] == SoilType.clay || this[drop + (dx, 1)] == SoilType.water); dx++)
+            {
+                if (this[drop + (dx, 0)] != SoilType.sand && this[drop + (dx, 0)] != SoilType.moist)
+                {
+                    Console.WriteLine($"Surprise: square at {drop + (dx, 0)} was {this[drop + (dx, 0)]}");
+                }
+                this[drop + (dx, 0)] = SoilType.moist;
+                rightLimit = drop + (dx, 0);
+            }
+            if (this[leftLimit + (-1, 0)] == SoilType.clay && this[rightLimit + (1, 0)] == SoilType.clay)
+            {
+                // Walls on either side, fill with water and return
+                for (int x = leftLimit.X; x <= rightLimit.X; x++)
+                {
+                    this[(x, drop.Y)] = SoilType.water;
+                }
+                return SplashWater(springHistory);
+            }
+            // Overflows on either or both sides
+            bool SettlesAfterOverflow = false;
+            if (this[leftLimit + (-1, 0)] != SoilType.clay)
+            {
+                var newSpring = new List<(int X, int Y)>(springHistory);
+                newSpring.Add(leftLimit + (-1, 0));
+
+                if (SplashWater(newSpring))
+                {
+                    SettlesAfterOverflow = true;
                 }
                 else
                 {
-                    // Expand to left and right until it hits a wall or loses support from clay or water 
-                    Drop leftLimit = drop;
-                    for (int dx = -1; this[drop + (dx, 0)] != SoilType.clay &&
-                                    (this[drop + (dx, 1)] == SoilType.clay || this[drop + (dx, 1)] == SoilType.water); dx--)
-                    {
-                        if (this[drop + (dx, 0)] != SoilType.sand && this[drop + (dx, 0)] != SoilType.moist)
-                        {
-                            Console.WriteLine($"Surprise: square at {drop + (dx, 0)} was {this[drop + (dx, 0)]}");
-                        }
-                        this[drop + (dx, 0)] = SoilType.moist;
-                        leftLimit = drop + (dx, 0);
-                    }
-                    Drop rightLimit = drop;
-                    for (int dx = 1; this[drop + (dx, 0)] != SoilType.clay &&
-                                    (this[drop + (dx, 1)] == SoilType.clay || this[drop + (dx, 1)] == SoilType.water); dx++)
-                    {
-                        if (this[drop + (dx, 0)] != SoilType.sand && this[drop + (dx, 0)] != SoilType.moist)
-                        {
-                            Console.WriteLine($"Surprise: square at {drop + (dx, 0)} was {this[drop + (dx, 0)]}");
-                        }
-                        this[drop + (dx, 0)] = SoilType.moist;
-                        rightLimit = drop + (dx, 0);
-                    }
-                    if (this[leftLimit + (-1, 0)] == SoilType.clay && this[rightLimit + (1, 0)] == SoilType.clay)
-                    {
-                        // Walls on either side, fill with water and return
-                        for (int x = leftLimit.X; x <= rightLimit.X; x++)
-                        {
-                            this[(x, drop.Y)] = SoilType.water;
-                        }
-                        return true;
-                    }
-                    // Overflows on either or both sides
-                    bool overflowSettles = false;
-                    if (this[leftLimit + (-1, 0)] != SoilType.clay)
-                    {
-                        this[leftLimit + (-1, 0)] = SoilType.moist;
-                        overflowSettles |= SplashWater(leftLimit + (-1, 0));
-                    }
-                    if (this[rightLimit + (1, 0)] != SoilType.clay)
-                    {
-                        this[rightLimit + (1, 0)] = SoilType.moist;
-                        overflowSettles |= SplashWater(rightLimit + (1, 0));
-                    }
-                    return overflowSettles;
+                    CompletedSprings.Add(springHistory.Last());
                 }
             }
+            if (this[rightLimit + (1, 0)] != SoilType.clay)
+            {
+                var newSpring = new List<(int X, int Y)>(springHistory);
+                newSpring.Add(rightLimit + (1, 0));
+                if (SplashWater(newSpring))
+                {
+                    SettlesAfterOverflow = true;
+                }
+                else
+                {
+                    CompletedSprings.Add(springHistory.Last());
+                }
+            }
+            return SettlesAfterOverflow;
         }
     }
     class MainClass
@@ -187,10 +217,10 @@ namespace Advent2018_common
 
             var ground = new BelowGround(input);
             ground.PrintGround();
-            while (ground.SplashWater((500, 0)))
-            {
-                //ground.PrintGround();
-            }
+
+            List<(int X, int Y)> Springs = new List<(int X, int Y)> { (500, 0) };
+            ground.SplashWater(Springs);
+
             ground.PrintGround();
             Console.WriteLine($"Total wet squares: {ground.WetSquares()}");
 
