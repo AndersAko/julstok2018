@@ -7,24 +7,41 @@ using System.Text;
 
 namespace Advent2018_common
 {
+    struct Route
+    {
+        internal (int X, int Y) endPos;
+        internal List<(int X, int Y)> path;
+        internal Route((int X, int Y) endPos, List<(int X, int Y)> path)
+        {
+            this.endPos = endPos;
+            this.path = new List<(int X, int Y)>(path);
+            this.path.Add(endPos);
+        }
+        internal Route((int X, int Y) endPos) : this(endPos, new List<(int X, int Y)>()) { }
+        public override string ToString()
+        {
+            return $"{path.Count} to {endPos}, starting with {path[0]}";
+        }
+    }
+    internal class RouteComparer : IComparer<Route>
+    {
+        public int Compare( Route a, Route b)
+        {
+            // Shortest path is best
+            if (a.path.Count != b.path.Count) return a.path.Count.CompareTo(b.path.Count);
+
+            // Tiebreak on reading order of final position
+            if (a.endPos.Y != b.endPos.Y) return a.endPos.Y.CompareTo(b.endPos.Y);
+            if (a.endPos.X != b.endPos.X) return a.endPos.X.CompareTo(b.endPos.X);
+
+            // Further tiebreak on first step in reading order
+            if (a.path[0].Y != b.path[0].Y) return a.path[0].Y.CompareTo(b.path[0].Y);
+            return a.path[0].X.CompareTo(b.path[0].X);
+        }
+    }
     abstract class Unit
     {
-        struct Route
-        {
-            internal (int X, int Y) endPos;
-            internal List<(int X, int Y)> path;
-            internal Route((int X, int Y) endPos, List<(int X, int Y)> path)
-            {
-                this.endPos = endPos;
-                this.path = new List<(int X, int Y)>(path);
-                this.path.Add(endPos);
-            }
-            internal Route((int X, int Y) endPos) : this(endPos, new List<(int X, int Y)>()) { }
-            public override string ToString()
-            {
-                return $"{path.Count}:{endPos.Y}.{endPos.X}";
-            }
-        }
+
         public (int X, int Y) Pos;
         public int hp;
         public Unit(int X, int Y)
@@ -37,19 +54,24 @@ namespace Advent2018_common
             Pos = unitToCopy.Pos;
             hp = 200;
         }
+        public Unit Clone()
+        {
+            return (Unit) this.MemberwiseClone();
+        }
         public abstract char Symbol();
-        // Move this unit to the closest reachable unit and return list of potential melee targets
-        public List<Unit> MoveAndFindTargets(List<string> maze, List<Unit> units)
+        // Move this unit to the closest reachable unit if possible
+        public void Move(List<string> maze, List<Unit> allUnits)
         {
             // Already in range, no need to move
-            var meleeUnits = FindMeleeUnits(units);
-            if (meleeUnits.Any()) return meleeUnits;
+            var meleeUnits = FindMeleeUnits(allUnits);
+            if (meleeUnits.Any()) return ;
+
 
             // Otherwise, look for closest path to closest target
-            // Console.WriteLine($"Finding path for {this}");
-            var movesToSearch = new SortedList<string, Route>();
-            foreach (var newMove in PossibleMoves(Pos, maze, units).Select(m => new Route(m))) {
-                movesToSearch[newMove.ToString()] = newMove;
+            //Console.WriteLine($"Finding path for {this}");
+            var movesToSearch = new SortedSet<Route>(new RouteComparer());
+            foreach (var newMove in PossibleMoves(Pos, maze, allUnits).Select(m => new Route(m))) {
+                movesToSearch.Add(newMove);
             }
             var examinedRoutes = new HashSet<(int X, int Y)>();
 
@@ -57,32 +79,29 @@ namespace Advent2018_common
             {
                 // Pick next position in list
                 var checkPosition = movesToSearch.First();
-                movesToSearch.RemoveAt(0);
-                examinedRoutes.Add(checkPosition.Value.endPos);
+                movesToSearch.Remove(checkPosition);
+                examinedRoutes.Add(checkPosition.endPos);
 
-                //Console.WriteLine($"Checking {checkPosition.Value}");
+                //Console.WriteLine($"Checking {checkPosition}");
 
                 // If Adjacent to another unit, return a list of all melee units
-                var closestUnits = units.Where(u => u.GetType() != this.GetType())
-                                        .Where(u => new List<(int X, int Y)> { (0, -1), (-1, 0), (1, 0), (0, 1) }
-                                                        .Any(delta => u.Pos.X == checkPosition.Value.endPos.X + delta.X && u.Pos.Y == checkPosition.Value.endPos.Y + delta.Y));
+                var closestUnits = FindMeleeUnits(allUnits, checkPosition.endPos);
                 if (closestUnits.Any())
                 {
-                    Pos = checkPosition.Value.path[0];    // First step
-                    return closestUnits.ToList();
+                    Pos = checkPosition.path[0];    // First step
+                    return;
                 }
                 // Find possible moves from here and add to list
-                foreach (var newMove in PossibleMoves(checkPosition.Value.endPos, maze, units)
+                foreach (var newMove in PossibleMoves(checkPosition.endPos, maze, allUnits)
                                        .Where(newMove => !examinedRoutes.Contains(newMove))
-                                       .Select(m => new Route(m, checkPosition.Value.path)))
+                                       .Select(m => new Route(m, checkPosition.path)))
                 {
-                    movesToSearch[newMove.ToString()] = newMove;
+                    movesToSearch.Add(newMove);
                 }
             }
             //Console.WriteLine($"No units are reachable from {this}");
             //MainClass.PrintMaze(maze, units);
-            return new List<Unit>();
-
+            return;
         }
         static List<(int X, int Y)> PossibleMoves((int X, int Y) pos, List<string> maze, List<Unit> units)
         {
@@ -96,13 +115,21 @@ namespace Advent2018_common
             }
             return result;
         }
-        public List<Unit> FindMeleeUnits(List<Unit> units)
+        // Find melee units if we would move to new position Pos
+        public IEnumerable<Unit> FindMeleeUnits(List<Unit> units, (int X, int Y) Pos)
         {
             var closestUnits = units.Where(u => u.GetType() != this.GetType())
-                                    .Where(u => new List<(int X, int Y)> { (0, -1), (-1, 0), (1, 0), (0, 1) }
-                                                    .Any(delta => u.Pos.X == Pos.X + delta.X && u.Pos.Y == Pos.Y + delta.Y));
+                                    .Where(u => (u.Pos.X == Pos.X && (u.Pos.Y == Pos.Y - 1 || u.Pos.Y == Pos.Y + 1)) ||
+                                               (u.Pos.Y == Pos.Y && (u.Pos.X == Pos.X - 1 || u.Pos.X == Pos.X + 1)));
+            //var closestUnits = units.Where(u => u.GetType() != this.GetType())
+            //.Where(u => new List<(int X, int Y)> { (0, -1), (-1, 0), (1, 0), (0, 1) }
+            //.Any(delta => u.Pos.X == Pos.X + delta.X && u.Pos.Y == Pos.Y + delta.Y));
             //if (closestUnits.Any()) Console.WriteLine($"The {this.GetType()} at {Pos} can directly attack {String.Join(",", closestUnits)}");
-            return closestUnits.ToList();
+            return closestUnits;
+        }
+        public IEnumerable<Unit> FindMeleeUnits(List<Unit> units)
+        {
+            return FindMeleeUnits(units, this.Pos);
         }
         public override string ToString()
         {
@@ -111,18 +138,13 @@ namespace Advent2018_common
     }
     class Elf : Unit
     {
-        public Elf(int X, int Y) : base(X, Y)
-        {
-        }
+        public Elf(int X, int Y) : base(X, Y) { }
         public Elf (Elf e) : base(e) { }
         public override char Symbol() { return 'E'; }
     }
     class Goblin : Unit
     {
-        public Goblin(int X, int Y) : base(X, Y)
-        {
-
-        }
+        public Goblin(int X, int Y) : base(X, Y) { }
         public Goblin(Goblin g) : base(g) { }
         public override char Symbol() { return 'G'; }
     }
@@ -154,7 +176,7 @@ namespace Advent2018_common
                         continue;
                     if (!units.Any(u => u.GetType() != unit.GetType())) goto combat_complete;
                     var oldPosition = unit.Pos;
-                    var targets = unit.MoveAndFindTargets(maze, units);
+                    unit.Move(maze, units);
 
                     var meleeUnits = unit.FindMeleeUnits(units);
                     if (meleeUnits.Any())
@@ -180,8 +202,8 @@ namespace Advent2018_common
                         }
                     }
                 }
-                Console.WriteLine($"After {round} round(s):");
-                PrintMaze(maze, units);
+                //Console.WriteLine($"After {round} round(s):");
+                //PrintMaze(maze, units);
             }
         combat_complete:
             round--;    // Last round was not complete
@@ -216,31 +238,22 @@ namespace Advent2018_common
 
             Console.WriteLine("Initial position:");
             PrintMaze(maze, initialUnits);
-            var outcome = RunCombat(maze, initialUnits, 3, true);
-            Console.WriteLine($"With default power of 3 and accepting deaths, the outcome was {outcome}:");
-            PrintMaze(maze, initialUnits);
 
+            List<Unit> units = new List<Unit>(initialUnits.ConvertAll(u => u.Clone()));
+
+            var outcome = RunCombat(maze, units, 3, true);
+            Console.WriteLine($"With default power of 3 and accepting deaths, the outcome was {outcome}:");
+            PrintMaze(maze, units);
+
+            units = new List<Unit>(initialUnits.ConvertAll(u => u.Clone()));
+            outcome = RunCombat(maze, units, 3, true);
+            Console.WriteLine($"Rerunning with default power of 3 and accepting deaths, the outcome was {outcome}:");
+            PrintMaze(maze, units);
 
             outcome = -1;
-            List<Unit> units = null; 
             for (int power=4; outcome == -1; power++)
             {
-                units = new List<Unit>();
-                for (int i = 0; i < input.Length; i++)
-                {
-                    var line = input[i];
-                    int index = -1;
-                    while ((index = line.IndexOf('G', index + 1)) != -1)
-                    {
-                        var goblin = new Goblin(index, i);
-                        units.Add(goblin);
-                    }
-                    while ((index = line.IndexOf('E', index + 1)) != -1)
-                    {
-                        var elf = new Elf(index, i);
-                        units.Add(elf);
-                    }
-                }
+                units = new List<Unit>(initialUnits.ConvertAll(u => u.Clone()));
                 outcome = RunCombat(maze, units, power, false);
             }
             Console.WriteLine($"At lowest increased power, the outcome was {outcome}.");
